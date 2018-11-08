@@ -30,17 +30,15 @@ func operationSender(w http.ResponseWriter, r *http.Request) {
 	var o Operation
 	o.OpType = "insert"
 	o.Character = "x"
-	o.Position = "5"
-	o.Priority = "1"
+	o.Position = 5
+	o.Priority = 1
 
 	json.NewEncoder(w).Encode(o)
-
-	// w.Write([]byte("{\"status\":\"operation received\"}"))
 }
 
 type Operation struct {
 	OpType    string `json:"opType"`
 	Character string `json:"character"`
-	Position  string `json:"position"`
-	Priority  string `json:"priority"`
+	Position  int    `json:"position,string"`
+	Priority  int    `json:"priority,string"`
 }
