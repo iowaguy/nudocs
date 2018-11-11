@@ -82,12 +82,12 @@ func receiveOperations(conn net.Conn) {
 		var o operation
 		o.opType = string(buf[0])
 		o.character = string(buf[1])
-		if o.position, err = strconv.Atoi(string(buf[2 : n-1])); err != nil {
+		if o.position, err = strconv.Atoi(string(buf[2:n])); err != nil {
 			fmt.Println("Error: could not parse position int", err.Error())
 		}
-
+		fmt.Println(o.String())
 		// Send a response back to person contacting us.
-		conn.Write([]byte("ok"))
+		conn.Write([]byte("ok\n"))
 	}
 }
 
