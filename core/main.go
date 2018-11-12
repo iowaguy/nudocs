@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/iowaguy/opt/common"
 )
 
 const (
@@ -39,18 +41,18 @@ func main() {
 
 }
 
-func generateRandomOperation() operation {
+func generateRandomOperation() common.Operation {
 	rand.Seed(time.Now().UTC().UnixNano())
-	var o operation
+	var o common.Operation
 
 	if rand.Intn(2) == 1 {
-		o.opType = "i"
+		o.OpType = "i"
 	} else {
-		o.opType = "d"
+		o.OpType = "d"
 	}
 
-	o.character = string(byte(rand.Intn(26) + 65))
-	o.position = rand.Intn(128)
+	o.Character = string(byte(rand.Intn(26) + 65))
+	o.Position = rand.Intn(128)
 
 	return o
 }
@@ -79,24 +81,14 @@ func receiveOperations(conn net.Conn) {
 			break
 		}
 
-		var o operation
-		o.opType = string(buf[0])
-		o.character = string(buf[1])
-		if o.position, err = strconv.Atoi(string(buf[2:n])); err != nil {
+		var o common.Operation
+		o.OpType = string(buf[0])
+		o.Character = string(buf[1])
+		if o.Position, err = strconv.Atoi(string(buf[2:n])); err != nil {
 			fmt.Println("Error: could not parse position int", err.Error())
 		}
 		fmt.Println(o.String())
 		// Send a response back to person contacting us.
 		conn.Write([]byte("ok\n"))
 	}
-}
-
-type operation struct {
-	opType    string
-	character string
-	position  int
-}
-
-func (o *operation) String() string {
-	return fmt.Sprintf(o.opType + o.character + strconv.Itoa(o.position) + "\n")
 }
