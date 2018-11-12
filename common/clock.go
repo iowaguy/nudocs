@@ -14,6 +14,10 @@ type VectorClock struct {
 var clock *VectorClock
 var vcOnce sync.Once
 
+func GetLocalVectorClock() *VectorClock {
+	return clock
+}
+
 // creates the singleton
 func NewLocalVectorClock(peers, pid int) *VectorClock {
 	vcOnce.Do(func() {
