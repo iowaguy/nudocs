@@ -11,34 +11,33 @@ type reduce struct {
 	historyBuffer *list.List
 	proposed      *list.List
 	ready         *list.List
-	myClock       *common.VectorClock
 }
 
 // a singleton
 var instantiated *reduce
 var once sync.Once
 
-func NewReducer(peers int) *reduce {
+func NewReducer(peers, pid int) *reduce {
 	once.Do(func() {
 		instantiated = &reduce{}
 		instantiated.historyBuffer = list.New()
 		instantiated.proposed = list.New()
 		instantiated.ready = list.New()
-		instantiated.myClock = common.NewLocalVectorClock(peers)
+		common.NewLocalVectorClock(peers, pid)
 	})
 	return instantiated
 }
 
 // these come from other peers
 func (r *reduce) PeerPropose(o common.PeerOperation) {
-	// increment vector clock
-
-	// update my vector clock according the the peers vector clock
+	// increment vector clock and update according the the peer's vector clock
+	GetLocalVectorClock().IncrementClock().UpdateClock(o.VClock)
 }
 
 // these come from the ui
 func (r *reduce) Propose(o common.Operation) {
 	// increment vector clock
+	GetLocalVectorClock().IncrementClock()
 
 	r.proposed.PushBack(o)
 
