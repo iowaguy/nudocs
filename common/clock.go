@@ -47,6 +47,7 @@ func (me *VectorClock) UpdateClock(other *VectorClock) {
 	}
 }
 
+// true if me happened before other
 func (me *VectorClock) HappenedBefore(other *VectorClock) bool {
 	for i, v := range me.state {
 		if v > other.state[i] {
