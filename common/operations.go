@@ -32,3 +32,11 @@ type OpTransformer interface {
 	// returns operations that are ready to be displayed, blocks if none are available
 	Ready()
 }
+
+func NewPeerOperation(o Operation) *PeerOperation {
+	po := &PeerOperation{}
+	po.Operation = o
+	po.VClock = *GetLocalVectorClock()
+
+	return po
+}

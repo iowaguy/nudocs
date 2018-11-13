@@ -9,8 +9,8 @@ import (
 
 type reduce struct {
 	historyBuffer *list.List
-	proposed      *list.List
-	ready         *list.List
+	proposed      chan *Operation
+	ready         chan *Operation
 }
 
 // a singleton
@@ -21,8 +21,9 @@ func NewReducer(peers, pid int) *reduce {
 	once.Do(func() {
 		instantiated = &reduce{}
 		instantiated.historyBuffer = list.New()
-		instantiated.proposed = list.New()
-		instantiated.ready = list.New()
+		instantiated.proposed = make(chan *Operation, 100)
+		instantiated.ready = make(chan *Operation, 10)
+
 		common.NewLocalVectorClock(peers, pid)
 	})
 	return instantiated
@@ -32,6 +33,8 @@ func NewReducer(peers, pid int) *reduce {
 func (r *reduce) PeerPropose(o common.PeerOperation) {
 	// increment vector clock and update according the the peer's vector clock
 	GetLocalVectorClock().IncrementClock().UpdateClock(o.VClock)
+
+	r.proposed <- o
 }
 
 // these come from the ui
@@ -39,21 +42,28 @@ func (r *reduce) Propose(o common.Operation) {
 	// increment vector clock
 	GetLocalVectorClock().IncrementClock()
 
-	r.proposed.PushBack(o)
-
-	// TODO send to other peers
-
+	// send to other peers
+	for _, peer := range GetPeers() {
+		Send2Peer(peer, NewPeerOperation(o))
+	}
 }
 
 func (r *reduce) Ready() {
-	// TODO returns operations that are ready to be displayed, blocks if none are available
+
+	for {
+		// gets operations that are ready to be displayed, blocks if none are available
+		o := <-r.ready
+
+		// TODO send to client
+	}
 
 }
 
 func (r *reduce) Start() {
 	// pop op off proposed queue
-	eo := r.proposed.Remove(r.proposed.Front())
+	o := <-r.proposed
 
+	// section 1 of REDUCE algorithm
 	// search for first operation that is independent of o in historyBuffer
 	for e := r.historyBuffer.Front(); e != nil; e = e.Next() {
 		po := e.Value.(common.PeerOperation)
@@ -62,10 +72,35 @@ func (r *reduce) Start() {
 		}
 	}
 
-	if eo == nil {
-		// put eo in outgoing queue, eo can be exectuted
-		r.ready.PushBack(eo)
+	if e == nil {
+		// put o in outgoing queue, o can be exectuted
+		r.ready <- o
 	}
+
+	// section 2 of REDUCE algorithm
+	// if im here, o is independent of e
+	// look for operations causally preceding o
+	k := *e
+	for e = e.Next(); e != nil; e = e.Next() {
+		po := e.Value.(common.PeerOperation)
+		if r.myClock.HappenedAfter(&po.VClock) {
+			break
+		}
+	}
+
+	if e == nil {
+		eo := o
+
+		// perform an inclusion trasformation of o against everything in the history buffer, in the language of the paper: EO := LIT(O, L[k,m])
+		for e = &k; e != nil; e = e.Next() {
+			po := e.Value.(common.PeerOperation)
+			eo = InclusionTransformation(eo, po)
+		}
+
+	}
+
+	// section 3 of REDUCE algorithm
+	// search for first operation that is independent of o in historyBuffer
 
 }
 
