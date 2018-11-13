@@ -9,65 +9,61 @@ import (
 
 type reduce struct {
 	historyBuffer *list.List
-	proposed      chan *Operation
-	ready         chan *Operation
+	proposed      chan *common.PeerOperation
+	ready         chan *common.PeerOperation
 }
 
 // a singleton
-var instantiated *reduce
-var once sync.Once
+var instantiatedReduce *reduce
+var onceRed sync.Once
 
 func NewReducer(peers, pid int) *reduce {
-	once.Do(func() {
-		instantiated = &reduce{}
-		instantiated.historyBuffer = list.New()
-		instantiated.proposed = make(chan *Operation, 100)
-		instantiated.ready = make(chan *Operation, 10)
+	onceRed.Do(func() {
+		instantiatedReduce = &reduce{}
+		instantiatedReduce.historyBuffer = list.New()
+		instantiatedReduce.proposed = make(chan *common.PeerOperation, 100)
+		instantiatedReduce.ready = make(chan *common.PeerOperation, 10)
 
 		common.NewLocalVectorClock(peers, pid)
 	})
-	return instantiated
+	return instantiatedReduce
 }
 
 // these come from other peers
 func (r *reduce) PeerPropose(o common.PeerOperation) {
 	// increment vector clock and update according the the peer's vector clock
-	GetLocalVectorClock().IncrementClock().UpdateClock(o.VClock)
+	common.GetLocalVectorClock().IncrementClock().UpdateClock(&o.VClock)
 
-	r.proposed <- o
+	r.proposed <- &o
 }
 
 // these come from the ui
 func (r *reduce) Propose(o common.Operation) {
 	// increment vector clock
-	GetLocalVectorClock().IncrementClock()
+	common.GetLocalVectorClock().IncrementClock()
 
 	// send to other peers
 	for _, peer := range GetPeers() {
-		Send2Peer(peer, NewPeerOperation(o))
+		Send2Peer(peer, common.NewPeerOperation(o))
 	}
 }
 
-func (r *reduce) Ready() {
-
-	for {
-		// gets operations that are ready to be displayed, blocks if none are available
-		o := <-r.ready
-
-		// TODO send to client
-	}
-
+// returns a channel of ready operations that a client can access
+func (r *reduce) Ready() <-chan *common.PeerOperation {
+	return r.ready
 }
 
 func (r *reduce) Start() {
 	// pop op off proposed queue
 	o := <-r.proposed
 
+	var e *list.Element
+
 	// section 1 of REDUCE algorithm
 	// search for first operation that is independent of o in historyBuffer
-	for e := r.historyBuffer.Front(); e != nil; e = e.Next() {
+	for e = r.historyBuffer.Front(); e != nil; e = e.Next() {
 		po := e.Value.(common.PeerOperation)
-		if r.myClock.Independent(&po.VClock) {
+		if o.VClock.Independent(&po.VClock) {
 			break
 		}
 	}
@@ -81,9 +77,9 @@ func (r *reduce) Start() {
 	// if im here, o is independent of e
 	// look for operations causally preceding o
 	k := *e
-	for e = e.Next(); e != nil; e = e.Next() {
+	for e = k.Next(); e != nil; e = e.Next() {
 		po := e.Value.(common.PeerOperation)
-		if r.myClock.HappenedAfter(&po.VClock) {
+		if o.VClock.HappenedAfter(&po.VClock) {
 			break
 		}
 	}
@@ -91,10 +87,10 @@ func (r *reduce) Start() {
 	if e == nil {
 		eo := o
 
-		// perform an inclusion trasformation of o against everything in the history buffer, in the language of the paper: EO := LIT(O, L[k,m])
+		// perform an inclusion trasformation on o against everything in the history buffer, in the language of the paper: EO := LIT(O, L[k,m])
 		for e = &k; e != nil; e = e.Next() {
 			po := e.Value.(common.PeerOperation)
-			eo = InclusionTransformation(eo, po)
+			eo = InclusionTransformation(eo, &po)
 		}
 
 	}

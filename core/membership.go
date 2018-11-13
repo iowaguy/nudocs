@@ -13,10 +13,10 @@ type Peer struct {
 
 // a singleton
 var instantiated *membership
-var once sync.Once
+var onceMemb sync.Once
 
 func NewMembership(peers []Peer) *membership {
-	once.Do(func() {
+	onceMemb.Do(func() {
 		instantiated = &membership{}
 		instantiated.peers = peers
 	})
@@ -24,10 +24,12 @@ func NewMembership(peers []Peer) *membership {
 	return instantiated
 }
 
-func NewPeer(hostname string, port int) *peer {
-	p := &peer{}
+func NewPeer(hostname string, port int) *Peer {
+	p := &Peer{}
 	p.Hostname = hostname
 	p.Port = port
+
+	return p
 }
 
 func GetPeers() []Peer {
