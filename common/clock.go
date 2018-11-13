@@ -35,16 +35,18 @@ func NewVectorClock(other []int) *VectorClock {
 	return vc
 }
 
-func (me *VectorClock) IncrementClock() {
+func (me *VectorClock) IncrementClock() *VectorClock {
 	me.state[me.localPid]++
+	return me
 }
 
-func (me *VectorClock) UpdateClock(other *VectorClock) {
+func (me *VectorClock) UpdateClock(other *VectorClock) *VectorClock {
 	for i, v := range me.state {
 		if v < other.state[i] {
 			me.state[i] = other.state[i]
 		}
 	}
+	return me
 }
 
 // true if me happened before other
