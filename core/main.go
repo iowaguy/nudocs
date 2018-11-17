@@ -7,8 +7,6 @@ import (
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/iowaguy/opt/common"
 )
 
 const (
@@ -41,9 +39,9 @@ func main() {
 
 }
 
-func generateRandomOperation() common.Operation {
+func generateRandomOperation() Operation {
 	rand.Seed(time.Now().UTC().UnixNano())
-	var o common.Operation
+	var o Operation
 
 	if rand.Intn(2) == 1 {
 		o.OpType = "i"
@@ -81,7 +79,7 @@ func receiveOperations(conn net.Conn) {
 			break
 		}
 
-		var o common.Operation
+		var o Operation
 		o.OpType = string(buf[0])
 		o.Character = string(buf[1])
 		if o.Position, err = strconv.Atoi(string(buf[2:n])); err != nil {

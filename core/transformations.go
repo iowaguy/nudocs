@@ -1,18 +1,16 @@
 package core
 
-import "github.com/iowaguy/opt/common"
-
-func InclusionTransformation(o1, o2 *common.PeerOperation) *common.PeerOperation {
+func InclusionTransformation(o1, o2 *PeerOperation) *PeerOperation {
 	// TODO needs to determine exactly which function in the transformation matrix to call
 	return nil
 }
 
-func ExclusionTransformation(o1, o2 *common.PeerOperation) *common.PeerOperation {
+func ExclusionTransformation(o1, o2 *PeerOperation) *PeerOperation {
 	// TODO needs to determine exactly which function in the transformation matrix to call
 	return nil
 }
 
-func LET(eo *common.PeerOperation, l []*common.PeerOperation) *common.PeerOperation {
+func LET(eo *PeerOperation, l []*PeerOperation) *PeerOperation {
 	for _, po := range l {
 		eo = ExclusionTransformation(eo, po)
 	}
@@ -20,7 +18,7 @@ func LET(eo *common.PeerOperation, l []*common.PeerOperation) *common.PeerOperat
 	return eo
 }
 
-func LIT(eo *common.PeerOperation, l []*common.PeerOperation) *common.PeerOperation {
+func LIT(eo *PeerOperation, l []*PeerOperation) *PeerOperation {
 	for _, po := range l {
 		eo = InclusionTransformation(eo, po)
 	}
