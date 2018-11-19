@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-func Send2Peer(p Peer, op *PeerOperation) {
+func SendToPeer(p Peer, op *PeerOperation) {
 	SendPeerOperation(p.Hostname, p.Port, op)
 }
 

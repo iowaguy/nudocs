@@ -2,6 +2,8 @@ package core
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -74,4 +76,20 @@ func (me *VectorClock) Independent(other *VectorClock) bool {
 
 func (me *VectorClock) String() string {
 	return fmt.Sprintf("%v", me.state)
+}
+
+func ParseVectorClock(vc string) (*VectorClock, error) {
+	// trim white space and brackets
+	trimmedVc := strings.TrimSpace(vc)[1 : len(vc)-1]
+	vcStringArr := strings.Split(trimmedVc, " ")
+	iArr := make([]int, len(vcStringArr))
+	for _, v := range vcStringArr {
+		val, err := strconv.Atoi(v)
+		if err == nil {
+			fmt.Println("Error: could not parse vector clock")
+			return &VectorClock{}, err
+		}
+		iArr = append(iArr, val)
+	}
+	return NewVectorClock(iArr), nil
 }
