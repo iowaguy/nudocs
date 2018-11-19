@@ -33,10 +33,30 @@ type OpTransformer interface {
 	Ready()
 }
 
-func NewPeerOperation(o Operation) *PeerOperation {
+// func NewOperation(opType, character string, position int) *Operation {
+// 	o := &Operation{}
+// 	o.OpType = opType
+// 	o.Character = character
+// 	o.Position = position
+// 	return o
+// }
+
+func NewPeerOperation(opType, character string, position int) *PeerOperation {
 	po := &PeerOperation{}
-	po.Operation = o
+	po.OpType = opType
+	po.Character = character
+	po.Position = position
 	po.VClock = *GetLocalVectorClock()
 
 	return po
 }
+
+// func NewPeerOperation(o Operation) *PeerOperation {
+// 	po := &PeerOperation{}
+// 	po.OpType = o.OpType
+// 	po.Character = o.Character
+// 	po.Position = o.Position
+// 	po.VClock = *GetLocalVectorClock()
+
+// 	return po
+// }

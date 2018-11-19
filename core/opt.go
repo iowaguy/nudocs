@@ -4,19 +4,19 @@ import (
 	"sync"
 )
 
-type reduce struct {
+type Reduce struct {
 	historyBuffer []*PeerOperation
 	proposed      chan *PeerOperation
 	ready         chan *PeerOperation
 }
 
 // a singleton
-var instantiatedReduce *reduce
+var instantiatedReduce *Reduce
 var onceRed sync.Once
 
-func NewReducer(peers, pid int) *reduce {
+func NewReducer(peers, pid int) *Reduce {
 	onceRed.Do(func() {
-		instantiatedReduce = &reduce{}
+		instantiatedReduce = &Reduce{}
 		instantiatedReduce.historyBuffer = make([]*PeerOperation, 1024)
 		instantiatedReduce.proposed = make(chan *PeerOperation, 100)
 		instantiatedReduce.ready = make(chan *PeerOperation, 10)
@@ -27,7 +27,7 @@ func NewReducer(peers, pid int) *reduce {
 }
 
 // these come from other peers
-func (r *reduce) PeerPropose(o PeerOperation) {
+func (r *Reduce) PeerPropose(o PeerOperation) {
 	// increment vector clock and update according the the peer's vector clock
 	GetLocalVectorClock().IncrementClock().UpdateClock(&o.VClock)
 
@@ -35,22 +35,22 @@ func (r *reduce) PeerPropose(o PeerOperation) {
 }
 
 // these come from the ui
-func (r *reduce) Propose(o Operation) {
+func (r *Reduce) Propose(o Operation) {
 	// increment vector clock
 	GetLocalVectorClock().IncrementClock()
 
 	// send to other peers
 	for _, peer := range GetPeers() {
-		Send2Peer(peer, NewPeerOperation(o))
+		SendToPeer(peer, NewPeerOperation(o.OpType, o.Character, o.Position))
 	}
 }
 
 // returns a channel of ready operations that a client can access
-func (r *reduce) Ready() <-chan *PeerOperation {
+func (r *Reduce) Ready() <-chan *PeerOperation {
 	return r.ready
 }
 
-func (r *reduce) Start() {
+func (r *Reduce) Start() {
 	for {
 		// pop op off proposed queue
 		o := <-r.proposed
@@ -131,7 +131,7 @@ func (r *reduce) Start() {
 	}
 }
 
-func (r *reduce) log(o *PeerOperation) {
+func (r *Reduce) Log(o *PeerOperation) {
 	r.historyBuffer = append(r.historyBuffer, o)
 }
 
