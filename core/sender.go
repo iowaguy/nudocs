@@ -6,6 +6,6 @@ func SendToPeer(p *Peer, op *PeerOperation) {
 
 func SendToAllPeers(peers []Peer, op *PeerOperation) {
 	for _, p := range peers {
-		SendToPeer(p, op)
+		SendToPeer(&p, op)
 	}
 }
