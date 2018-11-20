@@ -1,0 +1,52 @@
+version: '3'
+services:
+  peer1:
+    command: /nudocs/nudocs
+    expose:
+    - "3333"
+    networks:
+    - nudocs-net
+    image: centos:7.4.1708
+    volumes:
+    - ".:/nudocs"
+  peer2:
+    command: /nudocs/nudocs
+    expose:
+    - "3333"
+    networks:
+    - nudocs-net
+    image: centos:7.4.1708
+    volumes:
+    - ".:/nudocs"
+
+  peer3:
+    command: /nudocs/nudocs
+    expose:
+    - "3333"
+    networks:
+    - nudocs-net
+    image: centos:7.4.1708
+    volumes:
+    - ".:/nudocs"
+  peer4:
+    command: /nudocs/nudocs
+    expose:
+    - "3333"
+    networks:
+    - nudocs-net
+    image: centos:7.4.1708
+    volumes:
+    - ".:/nudocs"
+  peer5:
+    command: /nudocs/nudocs
+    expose:
+    - "3333"
+    networks:
+    - nudocs-net
+    image: centos:7.4.1708
+    volumes:
+    - ".:/nudocs"
+
+networks:
+  nudocs-net:
+    driver: bridge
