@@ -46,11 +46,47 @@ func main() {
 
 		if IsPeer(conn) {
 			go receivePeerOperations(conn, red)
+		} else {
+			go receiveClientOperations(conn, red)
+			go sendClientOperations(conn, red)
+		}
+	}
+}
+
+func sendClientOperations(conn net.Conn, reducer *core.Reduce) {
+	// when they become ready
+	for o := range reducer.Ready() {
+		conn.Write([]byte(o.String()))
+	}
+}
+
+func receiveClientOperations(conn net.Conn, reducer *core.Reduce) {
+	defer conn.Close()
+
+	// Make a buffer to hold incoming data.
+	buf := make([]byte, 1024)
+
+	for {
+		// Read the incoming connection into the buffer.
+		n, err := conn.Read(buf)
+		if err != nil {
+			fmt.Println("Error reading:", err.Error())
+			break
 		}
 
-		go sendOperations(conn)
-	}
+		var o core.Operation
+		o.OpType = string(buf[0])
+		o.Character = string(buf[1])
 
+		if o.Position, err = strconv.Atoi(string(buf[2:n])); err != nil {
+			fmt.Println("Error: could not parse position int", err.Error())
+		}
+
+		// send operation to algorithm to be processed
+		reducer.ClientPropose(o)
+
+		// TODO send to the rest of the peers
+	}
 }
 
 func receivePeerOperations(conn net.Conn, reducer *core.Reduce) {
@@ -89,8 +125,6 @@ func receivePeerOperations(conn net.Conn, reducer *core.Reduce) {
 
 		// send operation to algorithm to be processed
 		reducer.PeerPropose(o)
-
-		// fmt.Println(o.String())
 	}
 }
 
