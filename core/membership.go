@@ -1,6 +1,9 @@
 package core
 
-import "sync"
+import (
+	"net"
+	"sync"
+)
 
 type Membership struct {
 	peers []Peer
@@ -9,6 +12,7 @@ type Membership struct {
 type Peer struct {
 	Hostname string
 	Port     int
+	Conn     net.Conn
 }
 
 // a singleton
@@ -26,10 +30,11 @@ func NewMembership(peers []Peer) *Membership {
 	return instantiated
 }
 
-func NewPeer(hostname string, port int) *Peer {
+func NewPeer(hostname string, port int, conn net.Conn) *Peer {
 	p := &Peer{}
 	p.Hostname = hostname
 	p.Port = port
+	p.Conn = conn
 
 	return p
 }

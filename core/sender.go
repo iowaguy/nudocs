@@ -1,21 +1,11 @@
 package core
 
-import (
-	"fmt"
-	"net"
-	"strconv"
-)
-
-func SendToPeer(p Peer, op *PeerOperation) {
-	SendPeerOperation(p.Hostname, p.Port, op)
+func SendToPeer(p *Peer, op *PeerOperation) {
+	p.Conn.Write([]byte(op.String()))
 }
 
-func SendPeerOperation(host string, port int, op *PeerOperation) {
-	conn, err := net.Dial("tcp", host+":"+strconv.Itoa(port))
-	if err != nil {
-		fmt.Println(err)
+func SendToAllPeers(peers []Peer, op *PeerOperation) {
+	for _, p := range peers {
+		SendToPeer(p, op)
 	}
-	defer conn.Close()
-
-	conn.Write([]byte(op.String()))
 }

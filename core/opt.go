@@ -40,8 +40,8 @@ func (r *Reduce) ClientPropose(o Operation) {
 	GetLocalVectorClock().IncrementClock()
 
 	// send to other peers
-	for _, peer := range GetPeers() {
-		SendToPeer(peer, NewPeerOperation(o.OpType, o.Character, o.Position))
+	for _, peer := range NewMembership(nil).GetPeers() {
+		SendToPeer(&peer, NewPeerOperation(o.OpType, o.Character, o.Position))
 	}
 }
 
