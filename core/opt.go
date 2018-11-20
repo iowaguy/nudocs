@@ -7,7 +7,7 @@ import (
 type Reduce struct {
 	historyBuffer []*PeerOperation
 	proposed      chan *PeerOperation
-	ready         chan *PeerOperation
+	ready         chan *Operation
 }
 
 // a singleton
@@ -19,7 +19,7 @@ func NewReducer(peers, pid int) *Reduce {
 		instantiatedReduce = &Reduce{}
 		instantiatedReduce.historyBuffer = make([]*PeerOperation, 1024)
 		instantiatedReduce.proposed = make(chan *PeerOperation, 100)
-		instantiatedReduce.ready = make(chan *PeerOperation, 10)
+		instantiatedReduce.ready = make(chan *Operation, 10)
 
 		NewLocalVectorClock(peers, pid)
 	})
@@ -35,7 +35,7 @@ func (r *Reduce) PeerPropose(o PeerOperation) {
 }
 
 // these come from the ui
-func (r *Reduce) Propose(o Operation) {
+func (r *Reduce) ClientPropose(o Operation) {
 	// increment vector clock
 	GetLocalVectorClock().IncrementClock()
 
@@ -46,7 +46,7 @@ func (r *Reduce) Propose(o Operation) {
 }
 
 // returns a channel of ready operations that a client can access
-func (r *Reduce) Ready() <-chan *PeerOperation {
+func (r *Reduce) Ready() <-chan *Operation {
 	return r.ready
 }
 
@@ -69,7 +69,7 @@ func (r *Reduce) Start() {
 
 		if noOpsIndependent {
 			// put o in outgoing queue, o can be exectuted
-			r.ready <- o
+			r.ready <- &o.Operation
 			continue
 		}
 
@@ -89,7 +89,7 @@ func (r *Reduce) Start() {
 			// the history buffer, in the language of the paper:
 			// EO := LIT(O, L[k,m])
 			eo := LIT(o, r.historyBuffer[k:])
-			r.ready <- eo
+			r.ready <- &eo.Operation
 			continue
 		}
 
@@ -127,7 +127,7 @@ func (r *Reduce) Start() {
 		oPrime := LET(o, reverse(l1Prime))
 
 		eo := LIT(oPrime, r.historyBuffer[k:])
-		r.ready <- eo
+		r.ready <- &eo.Operation
 	}
 }
 
@@ -140,7 +140,6 @@ func reverse(sl []*PeerOperation) []*PeerOperation {
 	for i := len(sl)/2 - 1; i >= 0; i-- {
 		opp := len(sl) - 1 - i
 		rev[i] = sl[opp]
-		// sl[i], sl[opp] = sl[opp], sl[i]
 	}
 
 	return rev

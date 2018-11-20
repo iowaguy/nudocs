@@ -2,7 +2,7 @@ package core
 
 import "sync"
 
-type membership struct {
+type Membership struct {
 	peers []Peer
 }
 
@@ -12,12 +12,14 @@ type Peer struct {
 }
 
 // a singleton
-var instantiated *membership
-var onceMemb sync.Once
+var (
+	instantiated *Membership
+	onceMemb     sync.Once
+)
 
-func NewMembership(peers []Peer) *membership {
+func NewMembership(peers []Peer) *Membership {
 	onceMemb.Do(func() {
-		instantiated = &membership{}
+		instantiated = &Membership{}
 		instantiated.peers = peers
 	})
 
@@ -32,6 +34,6 @@ func NewPeer(hostname string, port int) *Peer {
 	return p
 }
 
-func GetPeers() []Peer {
-	return instantiated.peers
+func (m *Membership) GetPeers() []Peer {
+	return m.peers
 }
