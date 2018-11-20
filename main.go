@@ -2,12 +2,8 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"net"
 	"os"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/iowaguy/nudocs/core"
 )
@@ -44,126 +40,13 @@ func main() {
 			os.Exit(1)
 		}
 
-		if IsPeer(conn) {
-			go receivePeerOperations(conn, red)
+		if core.IsPeer(conn) {
+			go core.ReceivePeerOperations(conn, red)
 		} else {
-			go receiveClientOperations(conn, red)
-			go sendClientOperations(conn, red)
+			// there will only be one client, in fact, the client
+			// is a singleton to guarantee this
+			c := core.NewClient(conn)
+			c.Start(red)
 		}
-	}
-}
-
-func sendClientOperations(conn net.Conn, reducer *core.Reduce) {
-	// when they become ready
-	for o := range reducer.Ready() {
-		conn.Write([]byte(o.String()))
-	}
-}
-
-func receiveClientOperations(conn net.Conn, reducer *core.Reduce) {
-	defer conn.Close()
-
-	// Make a buffer to hold incoming data.
-	buf := make([]byte, 1024)
-
-	for {
-		// Read the incoming connection into the buffer.
-		n, err := conn.Read(buf)
-		if err != nil {
-			fmt.Println("Error reading:", err.Error())
-			break
-		}
-
-		var o core.Operation
-		o.OpType = string(buf[0])
-		o.Character = string(buf[1])
-
-		if o.Position, err = strconv.Atoi(string(buf[2:n])); err != nil {
-			fmt.Println("Error: could not parse position int", err.Error())
-		}
-
-		// send operation to algorithm to be processed
-		reducer.ClientPropose(o)
-
-		// TODO send to the rest of the peers
-	}
-}
-
-func receivePeerOperations(conn net.Conn, reducer *core.Reduce) {
-	defer conn.Close()
-
-	// Make a buffer to hold incoming data.
-	buf := make([]byte, 1024)
-
-	for {
-		// Read the incoming connection into the buffer.
-		n, err := conn.Read(buf)
-		if err != nil {
-			fmt.Println("Error reading:", err.Error())
-			break
-		}
-
-		sBuf := string(buf)
-		var o core.PeerOperation
-		o.OpType = string(buf[0])
-		o.Character = string(buf[1])
-		vcStart := strings.Index(sBuf[2:], " ") + 1
-		if vcStart <= 0 {
-			fmt.Println("Error parsing peer operation")
-			return
-		}
-
-		if o.Position, err = strconv.Atoi(string(buf[2 : vcStart-1])); err != nil {
-			fmt.Println("Error: could not parse position int", err.Error())
-		}
-
-		if vClock, err := core.ParseVectorClock(string(buf[vcStart:n])); err != nil {
-			fmt.Println("Error: could not parse vector clock", err.Error())
-		} else {
-			o.VClock = *vClock
-		}
-
-		// send operation to algorithm to be processed
-		reducer.PeerPropose(o)
-	}
-}
-
-func IsPeer(conn net.Conn) bool {
-	buf := make([]byte, 256)
-
-	// Read the incoming connection into the buffer.
-	n, err := conn.Read(buf)
-	if err != nil {
-		fmt.Println("Error reading:", err.Error())
-		os.Exit(1)
-	}
-
-	return string(buf[:n]) == "peer"
-}
-
-func generateRandomOperation() core.Operation {
-	rand.Seed(time.Now().UTC().UnixNano())
-	var o core.Operation
-
-	if rand.Intn(2) == 1 {
-		o.OpType = "i"
-	} else {
-		o.OpType = "d"
-	}
-
-	o.Character = string(byte(rand.Intn(26) + 65))
-	o.Position = rand.Intn(128)
-
-	return o
-}
-
-func sendOperations(conn net.Conn) {
-	defer conn.Close()
-
-	for {
-		o := generateRandomOperation()
-
-		conn.Write([]byte(o.String()))
-		time.Sleep(2 * time.Second)
 	}
 }
