@@ -1,6 +1,6 @@
 version: '3'
 services:
-  peer1:
+  peer1: &peer
     command: /nudocs/nudocs
     expose:
     - "3333"
@@ -9,43 +9,10 @@ services:
     image: centos:7.4.1708
     volumes:
     - ".:/nudocs"
-  peer2:
-    command: /nudocs/nudocs
-    expose:
-    - "3333"
-    networks:
-    - nudocs-net
-    image: centos:7.4.1708
-    volumes:
-    - ".:/nudocs"
-
-  peer3:
-    command: /nudocs/nudocs
-    expose:
-    - "3333"
-    networks:
-    - nudocs-net
-    image: centos:7.4.1708
-    volumes:
-    - ".:/nudocs"
-  peer4:
-    command: /nudocs/nudocs
-    expose:
-    - "3333"
-    networks:
-    - nudocs-net
-    image: centos:7.4.1708
-    volumes:
-    - ".:/nudocs"
-  peer5:
-    command: /nudocs/nudocs
-    expose:
-    - "3333"
-    networks:
-    - nudocs-net
-    image: centos:7.4.1708
-    volumes:
-    - ".:/nudocs"
+  peer2: *peer
+  peer3: *peer
+  peer4: *peer
+  peer5: *peer
 
 networks:
   nudocs-net:

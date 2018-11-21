@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"os"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/iowaguy/nudocs/core"
 )
 
@@ -20,23 +20,31 @@ func main() {
 	// TODO determine pid id from hostsfile
 
 	// start algorithm
+	Formatter := new(log.TextFormatter)
+	Formatter.TimestampFormat = "02-01-2006 15:04:05"
+	Formatter.FullTimestamp = true
+	log.SetFormatter(Formatter)
+
+	log.Info("Starting server")
+
 	red := core.NewReducer(5, 0)
-	red.Start()
+	go red.Start()
 
 	// Listen for incoming connections.
+	log.Info("Listen for incoming connections")
 	l, err := net.Listen(connType, connHost+":"+connPort)
 	if err != nil {
-		fmt.Println("Error listening:", err.Error())
+		log.Error("Error listening:", err.Error())
 		os.Exit(1)
 	}
 	defer l.Close()
 
-	fmt.Println("Listening on " + connHost + ":" + connPort)
+	log.Info("Listening on " + connHost + ":" + connPort)
 	for {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
 		if err != nil {
-			fmt.Println("Error accepting: ", err.Error())
+			log.Error("Error accepting:", err.Error())
 			os.Exit(1)
 		}
 
