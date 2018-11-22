@@ -12,3 +12,4 @@
 *.out
 /operational-transform
 /nudocs
+/client/client
