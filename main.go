@@ -31,6 +31,8 @@ func init() {
 }
 
 func main() {
+	log.Info("Starting server")
+
 	flag.Parse()
 
 	log.Info("Hostsfile specified=" + *hostsfile + "; Port specified=" + strconv.Itoa(*connPort))
@@ -42,8 +44,6 @@ func main() {
 	}
 	log.Info("Hosts in hostsfile=" + strings.Join(hosts, " "))
 
-	// TODO determine pid id from hostsfile
-
 	myHostname, err := os.Hostname()
 	if err != nil {
 		log.Error("Could determine hostname: " + err.Error())
@@ -52,11 +52,17 @@ func main() {
 
 	log.Info("Local hostame=" + myHostname)
 
-	// start algorithm
-	log.Info("Starting server")
+	// determine pid from hostsfile
+	var myHostID int
+	for i, h := range hosts {
+		if h == myHostname {
+			myHostID = i
+		}
+	}
+	log.Info("Local hostame=" + myHostname + "; host ID=" + strconv.Itoa(myHostID))
 
-	// TODO use num hosts as arg for NewReducer
-	red := core.NewReducer(len(hosts), 0)
+	// start algorithm
+	red := core.NewReducer(len(hosts), hostID)
 	go red.Start()
 
 	// Listen for incoming connections.
