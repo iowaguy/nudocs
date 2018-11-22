@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -24,16 +25,17 @@ var (
 	file      = flag.String("f", "", "Path to shared file")
 )
 
-func main() {
+func init() {
 	Formatter := new(log.TextFormatter)
 	Formatter.TimestampFormat = "02-01-2006 15:04:05"
 	Formatter.FullTimestamp = true
 	log.SetFormatter(Formatter)
+}
 
+func main() {
 	flag.Parse()
 
-	log.Info("Host specified: " + *host)
-	log.Info("Port specified: " + strconv.Itoa(*port))
+	log.Info("Host specified=" + *host + "; Port specified=" + strconv.Itoa(*port))
 	localOps = make(chan *core.Operation, 100)
 
 	// channel is unbuffered, only supports one at a time
@@ -45,6 +47,7 @@ func main() {
 		conn, err = net.Dial("tcp", *host+":"+strconv.Itoa(*port))
 		if err != nil {
 			log.Warn("Could not connect. Trying again. Error: " + err.Error())
+			time.Sleep(500 * time.Millisecond)
 		} else {
 			log.Info("Client connected to server")
 			break
@@ -58,7 +61,7 @@ func main() {
 	// generate random ops and send to server
 	go randomOps(conn)
 
-	// receive ops from server and apply them
+	// apply ops when received
 	for {
 		select {
 		case op := <-serverOps:
@@ -69,13 +72,6 @@ func main() {
 	}
 }
 
-// generate random ops
-// write generated ops to a channel
-
-// receive ops from server and write to different channel
-
-// select on channels and apply ops, server ops first
-
 func applyOp(op *core.Operation) {
 	if op.OpType == "i" {
 		insertChar(op)
@@ -85,13 +81,14 @@ func applyOp(op *core.Operation) {
 		log.Warn("Unrecognized operation type: " + op.OpType)
 		return
 	}
+	fmt.Print(doc)
 }
 
 func insertChar(op *core.Operation) {
 	r := []rune(op.Character)
 	var buffer bytes.Buffer
-	for i := range doc {
-		buffer.WriteRune(r[0])
+	for i, char := range doc {
+		buffer.WriteRune(char)
 		if i == op.Position {
 			buffer.WriteRune(r[0])
 		}
@@ -101,8 +98,14 @@ func insertChar(op *core.Operation) {
 }
 
 func deleteChar(op *core.Operation) {
-	// TODO
-	return
+	var buffer bytes.Buffer
+	for i, char := range doc {
+		if i != op.Position {
+			buffer.WriteRune(char)
+		}
+	}
+
+	doc = buffer.String()
 }
 
 func readOpsFromServer(conn net.Conn) {
@@ -170,8 +173,4 @@ func readTestDoc() string {
 	}
 
 	return string(b)
-}
-
-func applyToDoc(op string) {
-
 }
