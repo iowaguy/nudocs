@@ -19,7 +19,15 @@ func NewReducer(peers, pid int) *Reduce {
 		instantiatedReduce = &Reduce{}
 		instantiatedReduce.historyBuffer = make([]*PeerOperation, 1024)
 		instantiatedReduce.proposed = make(chan *PeerOperation, 100)
-		instantiatedReduce.ready = make(chan *Operation, 10)
+
+		// the server can only have one ready operation at a time, will
+		// need to force this by making the channel unbuffered, so
+		// communication is synchronous. this is necessary because
+		// otherwise, an operation could happen locally and be
+		// unaccounted for in operations waiting in the ready queue.
+		// a new operation can only be processed after the
+		// ready queue is emptied.
+		instantiatedReduce.ready = make(chan *Operation)
 
 		NewLocalVectorClock(peers, pid)
 	})
