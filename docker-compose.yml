@@ -1,7 +1,6 @@
 version: '3'
 services:
   anchorpeer: &peer
-    command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
     expose:
     - "3333"
     networks:
@@ -15,38 +14,42 @@ services:
     image: centos:7.4.1708
     volumes:
     - ".:/nudocs"
-
   peer1:
     <<: *peer
+    command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
     hostname: peer1
-  peer2:
-    <<: *peer
-    hostname: peer2
-  peer3:
-    <<: *peer
-    hostname: peer3
-  peer4:
-    <<: *peer
-    hostname: peer4
-  peer5:
-    <<: *peer
-    hostname: peer5
+  # peer2:
+  #   <<: *peer
+  #   command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
+  #   hostname: peer2
+  # peer3:
+  #   <<: *peer
+  #   command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
+  #   hostname: peer3
+  # peer4:
+  #   <<: *peer
+  #   command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
+  #   hostname: peer4
+  # peer5:
+  #   <<: *peer
+  #   command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
+  #   hostname: peer5
 
   client1:
     <<: *client
     command: /nudocs/client/client -h peer1 -p 3333 -f /nudocs/test/test.txt
-  client2:
-    <<: *client
-    command: /nudocs/client/client -h peer2 -p 3333 -f /nudocs/test/test.txt
-  client3:
-    <<: *client
-    command: /nudocs/client/client -h peer3 -p 3333 -f /nudocs/test/test.txt
-  client4:
-    <<: *client
-    command: /nudocs/client/client -h peer4 -p 3333 -f /nudocs/test/test.txt
-  client5:
-    <<: *client
-    command: /nudocs/client/client -h peer5 -p 3333 -f /nudocs/test/test.txt
+  # client2:
+  #   <<: *client
+  #   command: /nudocs/client/client -h peer2 -p 3333 -f /nudocs/test/test.txt
+  # client3:
+  #   <<: *client
+  #   command: /nudocs/client/client -h peer3 -p 3333 -f /nudocs/test/test.txt
+  # client4:
+  #   <<: *client
+  #   command: /nudocs/client/client -h peer4 -p 3333 -f /nudocs/test/test.txt
+  # client5:
+  #   <<: *client
+  #   command: /nudocs/client/client -h peer5 -p 3333 -f /nudocs/test/test.txt
 
 networks:
   nudocs-net:
