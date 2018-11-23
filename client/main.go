@@ -7,19 +7,21 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net"
+	"os"
 	"strconv"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/iowaguy/nudocs/core"
+	"github.com/iowaguy/nudocs/common"
+	"github.com/iowaguy/nudocs/common/communication"
 )
 
 // TODO later, send document hash to make sure initial document is the same
 
 var (
 	doc       string
-	localOps  chan *core.Operation
-	serverOps chan *core.Operation
+	localOps  chan *common.Operation
+	serverOps chan *common.Operation
 	port      = flag.Int("p", 3333, "Server port to connect to")
 	host      = flag.String("h", "localhost", "Server hostname to connect to")
 	file      = flag.String("f", "", "Path to shared file")
@@ -36,10 +38,10 @@ func main() {
 	flag.Parse()
 
 	log.Info("Host specified=" + *host + "; Port specified=" + strconv.Itoa(*port))
-	localOps = make(chan *core.Operation, 100)
+	localOps = make(chan *common.Operation, 100)
 
 	// channel is unbuffered, only supports one at a time
-	serverOps = make(chan *core.Operation)
+	serverOps = make(chan *common.Operation)
 
 	var conn net.Conn
 	for {
@@ -53,13 +55,15 @@ func main() {
 			break
 		}
 	}
-	sendToServer(conn, "client")
+	communication.SendToServer(conn, "client")
 
 	// read document
 	doc = readTestDoc()
 
 	// generate random ops and send to server
 	go randomOps(conn)
+
+	go readOpsFromServer(conn)
 
 	// apply ops when received
 	for {
@@ -72,7 +76,7 @@ func main() {
 	}
 }
 
-func applyOp(op *core.Operation) {
+func applyOp(op *common.Operation) {
 	if op.OpType == "i" {
 		insertChar(op)
 	} else if op.OpType == "d" {
@@ -84,7 +88,7 @@ func applyOp(op *core.Operation) {
 	fmt.Print(doc)
 }
 
-func insertChar(op *core.Operation) {
+func insertChar(op *common.Operation) {
 	r := []rune(op.Character)
 	var buffer bytes.Buffer
 	for i, char := range doc {
@@ -97,7 +101,7 @@ func insertChar(op *core.Operation) {
 	doc = buffer.String()
 }
 
-func deleteChar(op *core.Operation) {
+func deleteChar(op *common.Operation) {
 	var buffer bytes.Buffer
 	for i, char := range doc {
 		if i != op.Position {
@@ -118,11 +122,11 @@ func readOpsFromServer(conn net.Conn) {
 		// Read the incoming connection into the buffer.
 		n, err := conn.Read(buf)
 		if err != nil {
-			log.Warn("Error reading:", err.Error())
-			break
+			log.Error("Error reading:", err.Error())
+			os.Exit(1)
 		}
 
-		var o core.Operation
+		var o common.Operation
 		o.OpType = string(buf[0])
 		o.Character = string(buf[1])
 		if o.Position, err = strconv.Atoi(string(buf[2:n])); err != nil {
@@ -141,14 +145,14 @@ func randomOps(conn net.Conn) {
 		// write op to a channel
 		localOps <- op
 
-		sendToServer(conn, op.String())
+		communication.SendToServer(conn, op.String())
 		time.Sleep(1 * time.Second)
 	}
 }
 
-func genRandomOp() *core.Operation {
+func genRandomOp() *common.Operation {
 	rand.Seed(time.Now().UTC().UnixNano())
-	var o core.Operation
+	var o common.Operation
 
 	if rand.Intn(2) == 1 {
 		o.OpType = "i"
@@ -160,10 +164,6 @@ func genRandomOp() *core.Operation {
 	o.Position = rand.Intn(128)
 
 	return &o
-}
-
-func sendToServer(conn net.Conn, op string) {
-	conn.Write([]byte(op))
 }
 
 func readTestDoc() string {

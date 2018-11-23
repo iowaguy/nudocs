@@ -2,23 +2,36 @@ package core
 
 import (
 	"sync"
+
+	"github.com/iowaguy/nudocs/common"
+	"github.com/iowaguy/nudocs/common/clock"
+	"github.com/iowaguy/nudocs/common/communication"
+	"github.com/iowaguy/nudocs/membership"
 )
 
+type OpTransformer interface {
+	Log(o *common.PeerOperation)
+	Ready() <-chan *common.Operation
+	Start()
+	PeerPropose(o common.PeerOperation)
+	ClientPropose(o common.Operation)
+}
+
 type Reduce struct {
-	historyBuffer []*PeerOperation
-	proposed      chan *PeerOperation
-	ready         chan *Operation
+	historyBuffer []*common.PeerOperation
+	proposed      chan *common.PeerOperation
+	ready         chan *common.Operation
 }
 
 // a singleton
 var instantiatedReduce *Reduce
 var onceRed sync.Once
 
-func NewReducer(peers, pid int) *Reduce {
+func GetReducer() *Reduce {
 	onceRed.Do(func() {
 		instantiatedReduce = &Reduce{}
-		instantiatedReduce.historyBuffer = make([]*PeerOperation, 1024)
-		instantiatedReduce.proposed = make(chan *PeerOperation, 100)
+		instantiatedReduce.historyBuffer = make([]*common.PeerOperation, 1024)
+		instantiatedReduce.proposed = make(chan *common.PeerOperation, 1024)
 
 		// the server can only have one ready operation at a time, will
 		// need to force this by making the channel unbuffered, so
@@ -27,34 +40,32 @@ func NewReducer(peers, pid int) *Reduce {
 		// unaccounted for in operations waiting in the ready queue.
 		// a new operation can only be processed after the
 		// ready queue is emptied.
-		instantiatedReduce.ready = make(chan *Operation)
-
-		NewLocalVectorClock(peers, pid)
+		instantiatedReduce.ready = make(chan *common.Operation)
 	})
 	return instantiatedReduce
 }
 
 // these come from other peers
-func (r *Reduce) PeerPropose(o PeerOperation) {
+func (r *Reduce) PeerPropose(o common.PeerOperation) {
 	// increment vector clock and update according the the peer's vector clock
-	GetLocalVectorClock().IncrementClock().UpdateClock(&o.VClock)
+	clock.GetLocalVectorClock().IncrementClock().UpdateClock(&o.VClock)
 
 	r.proposed <- &o
 }
 
 // these come from the ui
-func (r *Reduce) ClientPropose(o Operation) {
+func (r *Reduce) ClientPropose(o common.Operation) {
 	// increment vector clock
-	GetLocalVectorClock().IncrementClock()
+	clock.GetLocalVectorClock().IncrementClock()
 
 	// send to other peers
-	for _, peer := range NewMembership(nil).GetPeers() {
-		SendToPeer(&peer, NewPeerOperation(o.OpType, o.Character, o.Position))
+	for _, peer := range membership.GetMembership().GetPeers() {
+		communication.SendToPeer(&peer, common.NewPeerOperation(o.OpType, o.Character, o.Position))
 	}
 }
 
 // returns a channel of ready operations that a client can access
-func (r *Reduce) Ready() <-chan *Operation {
+func (r *Reduce) Ready() <-chan *common.Operation {
 	return r.ready
 }
 
@@ -111,7 +122,7 @@ func (r *Reduce) Start() {
 		// cs is a slice of the indexes of operations which are causally
 		// preceding o
 		cs := make([]int, len(r.historyBuffer))
-		l1 := make([]*PeerOperation, len(r.historyBuffer))
+		l1 := make([]*common.PeerOperation, len(r.historyBuffer))
 		for i, po := range r.historyBuffer[k:] {
 			if o.VClock.HappenedAfter(&po.VClock) {
 				cs = append(cs, i)
@@ -123,7 +134,7 @@ func (r *Reduce) Start() {
 		// one independent operation of o
 		c1 := cs[0]
 		eoc1Prime := LET(l1[0], reverse(r.historyBuffer[k:c1-1]))
-		l1Prime := make([]*PeerOperation, len(r.historyBuffer))
+		l1Prime := make([]*common.PeerOperation, len(r.historyBuffer))
 		l1Prime = append(l1Prime, eoc1Prime)
 		for i, eoci := range l1[1:] {
 			ci := cs[i-1]
@@ -139,12 +150,12 @@ func (r *Reduce) Start() {
 	}
 }
 
-func (r *Reduce) Log(o *PeerOperation) {
+func (r *Reduce) Log(o *common.PeerOperation) {
 	r.historyBuffer = append(r.historyBuffer, o)
 }
 
-func reverse(sl []*PeerOperation) []*PeerOperation {
-	rev := make([]*PeerOperation, len(sl))
+func reverse(sl []*common.PeerOperation) []*common.PeerOperation {
+	rev := make([]*common.PeerOperation, len(sl))
 	for i := len(sl)/2 - 1; i >= 0; i-- {
 		opp := len(sl) - 1 - i
 		rev[i] = sl[opp]

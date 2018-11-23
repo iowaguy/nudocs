@@ -1,10 +1,13 @@
-package core
+package client
 
 import (
 	"fmt"
 	"net"
 	"strconv"
 	"sync"
+
+	"github.com/iowaguy/nudocs/common"
+	"github.com/iowaguy/nudocs/core"
 )
 
 type Client struct {
@@ -13,33 +16,35 @@ type Client struct {
 }
 
 var (
-	client     *Client
-	clientOnce sync.Once
+	client          *Client
+	clientOnce      sync.Once
+	ClientConnected = make(chan int)
 )
 
 func NewClient(cConn net.Conn) *Client {
 	clientOnce.Do(func() {
 		client = &Client{conn: cConn}
+		ClientConnected <- 1
 	})
 
 	return client
 }
 
-func (c *Client) Start(red *Reduce) {
+func (c *Client) Start(ot core.OpTransformer) {
 	c.startOnce.Do(func() {
-		go c.ReceiveClientOperations(red)
-		go c.SendClientOperations(red)
+		go c.ReceiveClientOperations(ot)
+		go c.SendClientOperations(ot)
 	})
 }
 
-func (c *Client) SendClientOperations(reducer *Reduce) {
+func (c *Client) SendClientOperations(ot core.OpTransformer) {
 	// when they become ready
-	for o := range reducer.Ready() {
+	for o := range ot.Ready() {
 		c.conn.Write([]byte(o.String()))
 	}
 }
 
-func (c *Client) ReceiveClientOperations(reducer *Reduce) {
+func (c *Client) ReceiveClientOperations(ot core.OpTransformer) {
 	defer c.conn.Close()
 
 	// Make a buffer to hold incoming data.
@@ -53,7 +58,7 @@ func (c *Client) ReceiveClientOperations(reducer *Reduce) {
 			break
 		}
 
-		var o Operation
+		var o common.Operation
 		o.OpType = string(buf[0])
 		o.Character = string(buf[1])
 
@@ -63,6 +68,6 @@ func (c *Client) ReceiveClientOperations(reducer *Reduce) {
 
 		// send operation to algorithm to be processed
 		// this function will handle sending to the rest of the peers
-		reducer.ClientPropose(o)
+		ot.ClientPropose(o)
 	}
 }
