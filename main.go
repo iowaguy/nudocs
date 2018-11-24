@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"flag"
-	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -35,6 +34,7 @@ func init() {
 	Formatter.TimestampFormat = "02-01-2006 15:04:05"
 	Formatter.FullTimestamp = true
 	log.SetFormatter(Formatter)
+	log.SetLevel(log.WarnLevel)
 }
 
 func main() {
@@ -46,6 +46,7 @@ func main() {
 	hosts := readHostsFile(*hostsfile)
 
 	myHostID := determineHostID(hosts)
+	membership.GetMembership().SetPid(myHostID)
 
 	log.Info("Initialize vector clock")
 	clock.NewLocalVectorClock(len(hosts), myHostID)
@@ -68,6 +69,8 @@ func main() {
 	// block until client is connected
 	<-client.ClientConnected
 
+	// problem: when start is called, peer connection is not available
+
 	// can pass in nil as client arg, because a client will have already been created
 	client.NewClient(nil).Start(core.GetReducer())
 
@@ -83,6 +86,11 @@ func main() {
 // This function will not return until connections have been established with all peers
 func connectToPeers(peers []string) {
 	for _, h := range peers {
+		// ignore self connection
+		if h == peers[membership.GetMembership().GetPid()] {
+			continue
+		}
+
 		var conn net.Conn
 		// retry connection until it succeeds
 		for {
@@ -111,13 +119,13 @@ func acceptNewConnections(l net.Listener) {
 		log.Info("Waiting for client or peer to connect")
 		conn, err := l.Accept()
 		if err != nil {
-			log.Error("Error accepting:", err.Error())
+			log.Error("Error accepting: ", err.Error())
 			os.Exit(1)
 		}
 		log.Info("Connection received, determining who it is...")
 
 		if isPeer(conn) {
-			log.Info("Connected to peer")
+			log.Info("Connected to peer: " + conn.RemoteAddr().String())
 			go receivePeerOperations(conn, core.GetReducer())
 		} else {
 			log.Info("Connected to client")
@@ -184,32 +192,15 @@ func receivePeerOperations(conn net.Conn, ot core.OpTransformer) {
 	buf := make([]byte, 1024)
 
 	for {
+
 		// Read the incoming connection into the buffer.
 		n, err := conn.Read(buf)
 		if err != nil {
-			fmt.Println("Error reading:", err.Error())
+			log.Error("Error reading: ", err.Error())
 			break
 		}
 
-		sBuf := string(buf)
-		var o common.PeerOperation
-		o.OpType = string(buf[0])
-		o.Character = string(buf[1])
-		vcStart := strings.Index(sBuf[2:], " ") + 1
-		if vcStart <= 0 {
-			fmt.Println("Error parsing peer operation")
-			return
-		}
-
-		if o.Position, err = strconv.Atoi(string(buf[2 : vcStart-1])); err != nil {
-			fmt.Println("Error: could not parse position int", err.Error())
-		}
-
-		if vClock, err := clock.ParseVectorClock(string(buf[vcStart:n])); err != nil {
-			fmt.Println("Error: could not parse vector clock", err.Error())
-		} else {
-			o.VClock = *vClock
-		}
+		o := common.ParseOperation(buf, n)
 
 		// send operation to algorithm to be processed
 		ot.PeerPropose(o)
@@ -222,8 +213,7 @@ func isPeer(conn net.Conn) bool {
 	// Read the incoming connection into the buffer.
 	n, err := conn.Read(buf)
 	if err != nil {
-		fmt.Println("Error reading:", err.Error())
-		os.Exit(1)
+		log.Panic("Error reading: ", err.Error())
 	}
 
 	return string(buf[:n]) == "peer"

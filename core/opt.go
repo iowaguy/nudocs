@@ -3,6 +3,7 @@ package core
 import (
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/iowaguy/nudocs/common"
 	"github.com/iowaguy/nudocs/common/clock"
 	"github.com/iowaguy/nudocs/common/communication"
@@ -13,8 +14,8 @@ type OpTransformer interface {
 	Log(o *common.PeerOperation)
 	Ready() <-chan *common.Operation
 	Start()
-	PeerPropose(o common.PeerOperation)
-	ClientPropose(o common.Operation)
+	PeerPropose(o *common.PeerOperation)
+	ClientPropose(o *common.Operation)
 }
 
 type Reduce struct {
@@ -30,7 +31,7 @@ var onceRed sync.Once
 func GetReducer() *Reduce {
 	onceRed.Do(func() {
 		instantiatedReduce = &Reduce{}
-		instantiatedReduce.historyBuffer = make([]*common.PeerOperation, 1024)
+		instantiatedReduce.historyBuffer = make([]*common.PeerOperation, 0, 1024)
 		instantiatedReduce.proposed = make(chan *common.PeerOperation, 1024)
 
 		// the server can only have one ready operation at a time, will
@@ -46,20 +47,21 @@ func GetReducer() *Reduce {
 }
 
 // these come from other peers
-func (r *Reduce) PeerPropose(o common.PeerOperation) {
+func (r *Reduce) PeerPropose(o *common.PeerOperation) {
 	// increment vector clock and update according the the peer's vector clock
 	clock.GetLocalVectorClock().IncrementClock().UpdateClock(&o.VClock)
 
-	r.proposed <- &o
+	r.proposed <- o
 }
 
 // these come from the ui
-func (r *Reduce) ClientPropose(o common.Operation) {
+func (r *Reduce) ClientPropose(o *common.Operation) {
 	// increment vector clock
 	clock.GetLocalVectorClock().IncrementClock()
 
 	// send to other peers
-	for _, peer := range membership.GetMembership().GetPeers() {
+	for i, peer := range membership.GetMembership().GetPeers() {
+		log.Info("peer=", i, peer.String())
 		communication.SendToPeer(&peer, common.NewPeerOperation(o.OpType, o.Character, o.Position))
 	}
 }

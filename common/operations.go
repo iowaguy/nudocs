@@ -3,7 +3,9 @@ package common
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/iowaguy/nudocs/common/clock"
 )
 
@@ -34,4 +36,38 @@ func NewPeerOperation(opType, character string, position int) *PeerOperation {
 	po.VClock = *clock.GetLocalVectorClock()
 
 	return po
+}
+
+func ParseOperation(ops []byte, length int) *PeerOperation {
+	log.Info("Peer message=", string(ops[:length]))
+
+	var o PeerOperation
+	o.OpType = string(ops[0])
+	o.Character = string(ops[1])
+
+	// need to add 3, because: 2 because the slice we're looking at starts
+	// at 2, and another 1 because Index tells us the index of the space,
+	// but we care about the vector clock which starts one index later
+	vcStart := strings.Index(string(ops[2:]), " ") + 3
+	log.Info("Vector clock starts at: ", vcStart)
+	if vcStart <= 0 {
+		log.Panic("Error parsing peer operation")
+	}
+
+	var err error
+	pos := string(ops[2 : vcStart-1])
+	log.Info("position string=", pos)
+	if o.Position, err = strconv.Atoi(pos); err != nil {
+		log.Panic("Error: could not parse position int: ", err.Error())
+	}
+
+	vc := string(ops[vcStart:length])
+	log.Info("Vector clock string=", vc)
+	if vClock, err := clock.ParseVectorClock(vc); err != nil {
+		log.Panic("Error: could not parse vector clock: ", err.Error())
+	} else {
+		o.VClock = *vClock
+	}
+
+	return &o
 }

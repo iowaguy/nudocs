@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type VectorClock struct {
@@ -38,11 +40,17 @@ func NewVectorClock(other []int) *VectorClock {
 }
 
 func (me *VectorClock) IncrementClock() *VectorClock {
+	log.Info("pid=", me.localPid, "; state len=", len(me.state))
 	me.state[me.localPid]++
 	return me
 }
 
 func (me *VectorClock) UpdateClock(other *VectorClock) *VectorClock {
+	// make sure length is the same
+	if len(me.state) != len(other.state) {
+		log.Panic("Error: vector clocks are not the same length: ", len(me.state), " and ", len(other.state))
+	}
+
 	for i, v := range me.state {
 		if v < other.state[i] {
 			me.state[i] = other.state[i]
@@ -82,14 +90,16 @@ func ParseVectorClock(vc string) (*VectorClock, error) {
 	// trim white space and brackets
 	trimmedVc := strings.TrimSpace(vc)[1 : len(vc)-1]
 	vcStringArr := strings.Split(trimmedVc, " ")
-	iArr := make([]int, len(vcStringArr))
+	iArr := make([]int, 0, len(vcStringArr))
+
 	for _, v := range vcStringArr {
 		val, err := strconv.Atoi(v)
-		if err == nil {
-			fmt.Println("Error: could not parse vector clock")
+		if err != nil {
+			log.Error("Error: could not parse vector clock")
 			return &VectorClock{}, err
 		}
 		iArr = append(iArr, val)
 	}
+
 	return NewVectorClock(iArr), nil
 }

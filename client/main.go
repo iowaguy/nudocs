@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -25,6 +26,7 @@ var (
 	port      = flag.Int("p", 3333, "Server port to connect to")
 	host      = flag.String("h", "localhost", "Server hostname to connect to")
 	file      = flag.String("f", "", "Path to shared file")
+	ops       = flag.Int("o", 10, "Number of random operations to perform")
 )
 
 func init() {
@@ -32,6 +34,7 @@ func init() {
 	Formatter.TimestampFormat = "02-01-2006 15:04:05"
 	Formatter.FullTimestamp = true
 	log.SetFormatter(Formatter)
+	log.SetLevel(log.WarnLevel)
 }
 
 func main() {
@@ -126,26 +129,28 @@ func readOpsFromServer(conn net.Conn) {
 			os.Exit(1)
 		}
 
-		var o common.Operation
-		o.OpType = string(buf[0])
-		o.Character = string(buf[1])
-		if o.Position, err = strconv.Atoi(string(buf[2:n])); err != nil {
-			log.Warn("Error: could not parse position int", err.Error())
-			break
-		}
+		for _, sBuf := range strings.Split(string(buf[:n]), "\n") {
+			var o common.Operation
+			o.OpType = string(sBuf[0])
+			o.Character = string(sBuf[1])
+			if o.Position, err = strconv.Atoi(string(sBuf[2:len(sBuf)])); err != nil {
+				log.Warn("Error: could not parse position int: ", err.Error())
+				break
+			}
 
-		serverOps <- &o
+			serverOps <- &o
+		}
 	}
 }
 
 func randomOps(conn net.Conn) {
-	for {
+	for ; *ops > 0; *ops-- {
 		op := genRandomOp()
 
 		// write op to a channel
 		localOps <- op
 
-		communication.SendToServer(conn, op.String())
+		communication.SendToServer(conn, op.String()+"\n")
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -154,13 +159,14 @@ func genRandomOp() *common.Operation {
 	rand.Seed(time.Now().UTC().UnixNano())
 	var o common.Operation
 
-	if rand.Intn(2) == 1 {
-		o.OpType = "i"
-	} else {
-		o.OpType = "d"
-	}
-
+	// if rand.Intn(2) == 1 {
+	o.OpType = "i"
 	o.Character = string(byte(rand.Intn(26) + 65))
+	// } else {
+	// 	o.OpType = "d"
+	// 	o.Character = "0"
+	// }
+
 	o.Position = rand.Intn(128)
 
 	return &o
