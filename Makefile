@@ -16,4 +16,5 @@ docker:
 
 .PHONY: test
 test:
-	go test github.com/iowaguy/nudocs/core
+	go test github.com/iowaguy/nudocs/common/communication
+	go test github.com/iowaguy/nudocs/common/clock

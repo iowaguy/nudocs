@@ -5,11 +5,12 @@ import (
 	"net"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 type Membership struct {
 	peers []Peer
+	pid   int
 }
 
 type Peer struct {
@@ -31,23 +32,31 @@ var (
 func GetMembership() *Membership {
 	onceMemb.Do(func() {
 		instantiated = &Membership{}
-		instantiated.peers = make([]Peer, INITIAL_PEER_CAPACITY)
+		instantiated.peers = make([]Peer, 0, INITIAL_PEER_CAPACITY)
 	})
 
 	return instantiated
 }
 
-func (m *Membership) AddPeer(peer *Peer) {
-	m.peers = append(m.peers, *peer)
+func (m *Membership) SetPid(pid int) {
+	m.pid = pid
 }
 
-func NewPeer(hostname string, port int, conn net.Conn) *Peer {
-	p := &Peer{}
+func (m *Membership) GetPid() int {
+	return m.pid
+}
+
+func (m *Membership) AddPeer(peer Peer) {
+	m.peers = append(m.peers, peer)
+}
+
+func NewPeer(hostname string, port int, conn net.Conn) Peer {
+	p := Peer{}
 	p.Hostname = hostname
 	p.Port = port
 	p.Conn = conn
 
-	logrus.Info("New peer=" + p.String())
+	log.Info("New peer=" + p.String())
 	return p
 }
 
