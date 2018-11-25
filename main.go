@@ -97,7 +97,7 @@ func connectToPeers(peers []string) {
 			var err error
 			conn, err = net.Dial("tcp", h+":"+strconv.Itoa(*connPort))
 			if err != nil {
-				log.Warn("Could not connect. Trying again. Error: " + err.Error())
+				log.Info("Could not connect. Trying again. Error: " + err.Error() + ". This is normal to see a few times at the beginning as the services are starting")
 				time.Sleep(500 * time.Millisecond)
 			} else {
 				log.Info("Client connected to server")
