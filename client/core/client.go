@@ -41,7 +41,7 @@ func (c *Client) Start(ot core.OpTransformer) {
 func (c *Client) SendClientOperations(ot core.OpTransformer) {
 	// when they become ready
 	for o := range ot.Ready() {
-		c.conn.Write([]byte(o.String()))
+		c.conn.Write([]byte(o.String() + "\n"))
 	}
 }
 
@@ -62,9 +62,6 @@ func (c *Client) ReceiveClientOperations(ot core.OpTransformer) {
 		var o common.Operation
 		o.OpType = string(buf[0])
 		o.Character = string(buf[1])
-
-		// TODO lower the log file of below command after debugging
-		log.Warn("op=", string(buf[:n-1]))
 
 		if o.Position, err = strconv.Atoi(string(buf[2 : n-1])); err != nil {
 			log.Warn("Error: could not parse position int", err.Error())
