@@ -10,8 +10,8 @@ server:
 
 .PHONY: docker
 docker:
-	GOOS=linux go build -v -i
-	GOOS=linux go build -v -i -o client/client client/main.go
+	GOOS=linux go build -v
+	GOOS=linux go build -v -o client/client client/main.go
 	docker-compose up
 
 .PHONY: test
