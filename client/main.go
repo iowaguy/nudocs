@@ -157,7 +157,7 @@ func randomOps(conn net.Conn) {
 		if err != nil {
 			log.Panic("something bad happened")
 		}
-		time.Sleep(time.Duration(mult) * time.Second)
+		time.Sleep(2 * time.Duration(mult) * time.Second)
 	}
 
 	for ; *ops > 0; *ops-- {
@@ -175,15 +175,14 @@ func genRandomOp() *common.Operation {
 	rand.Seed(time.Now().UTC().UnixNano())
 	var o common.Operation
 
+	o.Position = rand.Intn(len(doc))
 	if rand.Intn(2) == 1 {
 		o.OpType = "i"
 		o.Character = string(byte(rand.Intn(26) + 65))
 	} else {
 		o.OpType = "d"
-		o.Character = "0"
+		o.Character = string(doc[o.Position])
 	}
-
-	o.Position = rand.Intn(128)
 
 	log.Info("op=", o.String())
 

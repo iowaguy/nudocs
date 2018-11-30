@@ -38,6 +38,23 @@ func NewPeerOperation(opType, character string, position int) *PeerOperation {
 	return po
 }
 
+func newOperation(opType, character string, position int) *Operation {
+	po := &Operation{}
+	po.OpType = opType
+	po.Character = character
+	po.Position = position
+
+	return po
+}
+
+func UndoOperation(op *PeerOperation) *Operation {
+	if op.OpType == "i" {
+		return newOperation("d", op.Character, op.Position)
+	} else {
+		return newOperation("i", op.Character, op.Position)
+	}
+}
+
 func ParseOperation(ops []byte, length int) *PeerOperation {
 	log.Info("Peer message=", string(ops[:length]))
 
