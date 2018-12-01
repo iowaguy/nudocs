@@ -204,8 +204,8 @@ func (r *Reduce) got(o *common.PeerOperation) *common.PeerOperation {
 
 	// cs is a slice of the indexes of operations which are causally
 	// preceding o
-	cs := make([]int, len(r.historyBuffer))
-	l1 := make([]*common.PeerOperation, len(r.historyBuffer))
+	cs := make([]int, 0, len(r.historyBuffer))
+	l1 := make([]*common.PeerOperation, 0, len(r.historyBuffer))
 	for i, po := range r.historyBuffer[k:] {
 		if o.VClock.HappenedAfter(&po.VClock) {
 			cs = append(cs, i)
@@ -216,7 +216,6 @@ func (r *Reduce) got(o *common.PeerOperation) *common.PeerOperation {
 	// c1 is the first causally preceding operation following at least
 	// one independent operation of o
 	c1 := cs[0]
-	log.Warn(c1)
 	eoc1Prime := LET(l1[0], reverse(r.historyBuffer[k:c1-1]))
 	l1Prime := make([]*common.PeerOperation, len(r.historyBuffer))
 	l1Prime = append(l1Prime, eoc1Prime)
