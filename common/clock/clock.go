@@ -33,9 +33,10 @@ func NewLocalVectorClock(peers, pid int) *VectorClock {
 	return clock
 }
 
-func NewVectorClock(other []int) *VectorClock {
+func NewVectorClock(other []int, pid int) *VectorClock {
 	vc := new(VectorClock)
 	vc.state = other
+	vc.localPid = pid
 	return vc
 }
 
@@ -82,13 +83,40 @@ func (me *VectorClock) Independent(other *VectorClock) bool {
 	return !me.HappenedBefore(other) && !me.HappenedAfter(other)
 }
 
+func (me *VectorClock) CausallyPreceding(other *VectorClock) bool {
+	// causally preceding iff the following 2 conditions are met
+	// (1) SVo[s] = SVd[s] + 1
+	if (other.state[other.localPid] - me.state[other.localPid]) != 1 {
+		return false
+	}
+
+	// (2) SVo[i] <= SVd[i], for all i except i != s
+	for i := range me.state {
+		if other.localPid == i {
+			continue
+		} else if other.state[i] > me.state[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func (me *VectorClock) String() string {
-	return fmt.Sprintf("%v", me.state)
+	return fmt.Sprintf("%v:%v", me.localPid, me.state)
 }
 
 func ParseVectorClock(vc string) (*VectorClock, error) {
-	// trim white space and brackets
-	trimmedVc := strings.TrimSpace(vc)[1 : len(vc)-1]
+	// trim white space
+	trimmedVcAndPid := strings.TrimSpace(vc)
+
+	vcAndPid := strings.Split(trimmedVcAndPid, ":")
+	pid, err := strconv.Atoi(vcAndPid[0])
+	if err != nil {
+		log.Error("Error: could not parse vector clock pid")
+		return &VectorClock{}, err
+	}
+
+	trimmedVc := vcAndPid[1][1 : len(vcAndPid[1])-1]
 	vcStringArr := strings.Split(trimmedVc, " ")
 	iArr := make([]int, 0, len(vcStringArr))
 
@@ -101,5 +129,5 @@ func ParseVectorClock(vc string) (*VectorClock, error) {
 		iArr = append(iArr, val)
 	}
 
-	return NewVectorClock(iArr), nil
+	return NewVectorClock(iArr, pid), nil
 }

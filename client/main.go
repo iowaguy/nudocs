@@ -137,6 +137,7 @@ func readOpsFromServer(conn net.Conn) {
 			}
 
 			var o common.Operation
+			// log.Warn(sBuf)
 			o.OpType = string(sBuf[0])
 			o.Character = string(sBuf[1])
 			if o.Position, err = strconv.Atoi(string(sBuf[2:len(sBuf)])); err != nil {
@@ -157,7 +158,7 @@ func randomOps(conn net.Conn) {
 		if err != nil {
 			log.Panic("something bad happened")
 		}
-		time.Sleep(2 * time.Duration(mult) * time.Second)
+		time.Sleep(3 * time.Duration(mult) * time.Second)
 	}
 
 	for ; *ops > 0; *ops-- {
