@@ -54,7 +54,7 @@ func LET(o *common.PeerOperation, ol []*common.PeerOperation) *common.PeerOperat
 	if len(ol) == 0 {
 		return o
 	}
-	return LET(ET(o, ol[1]), Tail(ol))
+	return LET(ET(o, ol[0]), Tail(ol))
 }
 
 func LIT(o *common.PeerOperation, ol []*common.PeerOperation) *common.PeerOperation {
