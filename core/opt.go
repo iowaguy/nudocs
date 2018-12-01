@@ -217,9 +217,13 @@ func (r *Reduce) got(o *common.PeerOperation) *common.PeerOperation {
 	// one independent operation of o
 	c1 := cs[0]
 	eoc1Prime := LET(l1[0], reverse(r.historyBuffer[k:c1-1]))
-	l1Prime := make([]*common.PeerOperation, len(r.historyBuffer))
+	l1Prime := make([]*common.PeerOperation, 0, len(r.historyBuffer))
 	l1Prime = append(l1Prime, eoc1Prime)
-	for i, eoci := range l1[1:] {
+	for i, eoci := range l1 {
+		if i == 0 {
+			// skip the first, because c1 was already caluclated
+			continue
+		}
 		ci := cs[i-1]
 		ot := LET(eoci, reverse(r.historyBuffer[k:ci-1]))
 		eociPrime := LIT(ot, l1Prime)
