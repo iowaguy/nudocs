@@ -1,12 +1,10 @@
 package client
 
 import (
+	"bufio"
 	"net"
-	"os"
-	"strconv"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/iowaguy/nudocs/common"
 	"github.com/iowaguy/nudocs/core"
 )
@@ -49,27 +47,15 @@ func (c *Client) ReceiveClientOperations(ot core.OpTransformer) {
 	defer c.conn.Close()
 
 	// Make a buffer to hold incoming data.
-	buf := make([]byte, 1024)
+	// buf := make([]byte, 1024)
+
+	r := bufio.NewReader(c.conn)
 
 	for {
-		// Read the incoming connection into the buffer.
-		n, err := c.conn.Read(buf)
-		if err != nil {
-			log.Warn("Error reading: ", err.Error())
-			os.Exit(1)
-		}
-
-		var o common.Operation
-		o.OpType = string(buf[0])
-		o.Character = string(buf[1])
-
-		if o.Position, err = strconv.Atoi(string(buf[2 : n-1])); err != nil {
-			log.Warn("Error: could not parse position int", err.Error())
-			os.Exit(1)
-		}
+		o := common.ParseOperation(r)
 
 		// send operation to algorithm to be processed
 		// this function will handle sending to the rest of the peers
-		ot.ClientPropose(&o)
+		ot.ClientPropose(o)
 	}
 }
