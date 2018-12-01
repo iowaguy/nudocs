@@ -61,10 +61,14 @@ func LIT(o *common.PeerOperation, ol []*common.PeerOperation) *common.PeerOperat
 	if len(ol) == 0 {
 		return o
 	}
-	return LIT(IT(o, ol[1]), Tail(ol))
+	return LIT(IT(o, ol[0]), Tail(ol))
 }
 
+//returns all elements from index 1 to end
 func Tail(ol []*common.PeerOperation) []*common.PeerOperation {
+	if len(ol) < 2 {
+		return make([]*common.PeerOperation, 0)
+	}
 	return ol[1:]
 }
 
