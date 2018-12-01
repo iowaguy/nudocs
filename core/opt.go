@@ -238,9 +238,9 @@ func (r *Reduce) log(o *common.PeerOperation) {
 
 func reverse(sl []*common.PeerOperation) []*common.PeerOperation {
 	rev := make([]*common.PeerOperation, len(sl))
-	for i := len(sl)/2 - 1; i >= 0; i-- {
+	for i, v := range sl {
 		opp := len(sl) - 1 - i
-		rev[i] = sl[opp]
+		rev[opp] = v
 	}
 
 	return rev
