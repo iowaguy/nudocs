@@ -107,7 +107,7 @@ func (r *Reduce) Start() {
 		eoNew := r.got(oNew)
 
 		// (3) Transform Redo
-		eom1Prime := InclusionTransformation(undone[0], eoNew)
+		eom1Prime := IT(undone[0], eoNew)
 		undone = undone[1:]
 
 		transformedRedos := make([]*common.PeerOperation, 0, 1024)

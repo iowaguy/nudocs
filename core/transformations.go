@@ -6,30 +6,66 @@ import (
 	"strconv"
 )
 
-func InclusionTransformation(o1, o2 *common.PeerOperation) *common.PeerOperation {
-	// TODO needs to determine exactly which function in the transformation matrix to call
-	return o1
-}
-
-func ExclusionTransformation(o1, o2 *common.PeerOperation) *common.PeerOperation {
-	// TODO needs to determine exactly which function in the transformation matrix to call
-	return o1
-}
-
-func LET(eo *common.PeerOperation, l []*common.PeerOperation) *common.PeerOperation {
-	for _, po := range l {
-		eo = ExclusionTransformation(eo, po)
+func IT(o1, o2 *common.PeerOperation) *common.PeerOperation {
+	o1Operation := o1.Operation.OpType
+	o2Operation := o1.Operation.OpType
+	if o1Operation == "i" {
+		if o2Operation == "i" {
+			return IT_II(o1, o2)
+		} else if o2Operation == "d" {
+			return IT_ID(o1, o2)
+		}
+		log.Panic("Unknown opertaion received for o2 in IT")
+	} else if o1Operation == "d" {
+		if o2Operation == "i" {
+			return IT_DI(o1, o2)
+		} else if o2Operation == "d" {
+			return IT_DD(o1, o2)
+		}
+		log.Panic("Unknown opertaion received for o2 in IT")
 	}
-
-	return eo
+	log.Panic("Unknown opertaion received for o1 in IT")
+	return nil
 }
 
-func LIT(eo *common.PeerOperation, l []*common.PeerOperation) *common.PeerOperation {
-	for _, po := range l {
-		eo = InclusionTransformation(eo, po)
+func ET(o1, o2 *common.PeerOperation) *common.PeerOperation {
+	o1Operation := o1.Operation.OpType
+	o2Operation := o1.Operation.OpType
+	if o1Operation == "i" {
+		if o2Operation == "i" {
+			return ET_II(o1, o2)
+		} else if o2Operation == "d" {
+			return ET_ID(o1, o2)
+		}
+		log.Panic("Unknown opertaion received for o2 in ET")
+	} else if o1Operation == "d" {
+		if o2Operation == "i" {
+			return ET_DI(o1, o2)
+		} else if o2Operation == "d" {
+			return ET_DD(o1, o2)
+		}
+		log.Panic("Unknown opertaion received for o2 in ET")
 	}
+	log.Panic("Unknown opertaion received for o1 in ET")
+	return nil
+}
 
-	return eo
+func LET(o *common.PeerOperation, ol []*common.PeerOperation) *common.PeerOperation {
+	if len(ol) == 0 {
+		return o
+	}
+	return LET(ET(o, ol[1]), Tail(ol))
+}
+
+func LIT(o *common.PeerOperation, ol []*common.PeerOperation) *common.PeerOperation {
+	if len(ol) == 0 {
+		return o
+	}
+	return LIT(IT(o, ol[1]), Tail(ol))
+}
+
+func Tail(ol []*common.PeerOperation) []*common.PeerOperation {
+	return ol[1:]
 }
 
 func Save_LI(o1_1, o1, o2 *common.PeerOperation) {
