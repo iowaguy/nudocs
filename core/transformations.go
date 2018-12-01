@@ -1,14 +1,15 @@
 package core
 
 import (
+	"strconv"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/iowaguy/nudocs/common"
-	"strconv"
 )
 
 func IT(o1, o2 *common.PeerOperation) *common.PeerOperation {
-	o1Operation := o1.Operation.OpType
-	o2Operation := o1.Operation.OpType
+	o1Operation := o1.OpType
+	o2Operation := o1.OpType
 	if o1Operation == "i" {
 		if o2Operation == "i" {
 			return IT_II(o1, o2)
@@ -29,8 +30,8 @@ func IT(o1, o2 *common.PeerOperation) *common.PeerOperation {
 }
 
 func ET(o1, o2 *common.PeerOperation) *common.PeerOperation {
-	o1Operation := o1.Operation.OpType
-	o2Operation := o1.Operation.OpType
+	o1Operation := o1.OpType
+	o2Operation := o1.OpType
 	if o1Operation == "i" {
 		if o2Operation == "i" {
 			return ET_II(o1, o2)
@@ -226,15 +227,15 @@ func ET_DD(o1, o2 *common.PeerOperation) *common.PeerOperation {
 }
 
 func P(o *common.PeerOperation) int {
-	return o.Operation.Position
+	return o.Position
 }
 
 func L(o *common.PeerOperation) int {
-	return len(o.Operation.Character)
+	return len(o.Character)
 }
 
 func S(o *common.PeerOperation) string {
-	return o.Operation.Character
+	return o.Character
 }
 
 func Insert(content string, position int) *common.PeerOperation {

@@ -69,14 +69,9 @@ func (r *Reduce) queueCausallyReady() {
 		if clock.GetLocalVectorClock().CausallyPreceding(&proposed.VClock) {
 			log.Info("Found causally ready operation: ", proposed)
 			r.causallyReady <- proposed
-			// log.Warn("BENW 2")
-			// increment vector clock and update according the the peer's vector clock
-			// clock.GetLocalVectorClock().IncrementClock().UpdateClock(&proposed.VClock)
 			clock.GetLocalVectorClock().UpdateClock(&proposed.VClock)
-			// log.Warn("My clock is at: ", clock.GetLocalVectorClock())
-			continue
 		} else {
-			// log.Warn("Op is not causally ready. my state: ", clock.GetLocalVectorClock(), "; proposed clock: ", proposed.VClock)
+			log.Info("Op is not causally ready. my state: ", clock.GetLocalVectorClock(), "; proposed clock: ", proposed.VClock)
 			// put operation back on channel until it's causally ready
 			r.peerProposed <- proposed
 		}
@@ -135,19 +130,22 @@ func (r *Reduce) Start() {
 		eoNew := r.got(oNew)
 
 		// (3) Transform Redo
-		eom1Prime := IT(undone[0], eoNew)
-		undone = undone[1:]
-
 		transformedRedos := make([]*common.PeerOperation, 0, 1024)
-		transformedRedos = append(transformedRedos, eoNew, eom1Prime)
-		for i, eomi := range undone {
-			// (3.1)
-			to := LET(eomi, reverse(undone[:i]))
+		if undone[0] != nil {
+			eom1Prime := IT(undone[0], eoNew)
+			undone = undone[1:]
 
-			// (3.2)
-			eomiPrime := LIT(to, transformedRedos)
-			transformedRedos = append(transformedRedos, eomiPrime)
+			transformedRedos = append(transformedRedos, eoNew, eom1Prime)
+			for i, eomi := range undone {
+				// (3.1)
+				to := LET(eomi, reverse(undone[:i]))
 
+				// (3.2)
+				eomiPrime := LIT(to, transformedRedos)
+				transformedRedos = append(transformedRedos, eomiPrime)
+			}
+		} else {
+			transformedRedos = append(transformedRedos, eoNew)
 		}
 
 		// write transformed ops to ready
