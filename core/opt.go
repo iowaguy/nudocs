@@ -22,8 +22,13 @@ type Reduce struct {
 	historyBuffer []*common.PeerOperation
 
 	// these are the causally ready operations
-	proposed chan *common.PeerOperation
-	ready    chan *common.Operation
+	causallyReady chan *common.PeerOperation
+
+	// these are operations that have been transformed and are ready to be
+	// applied by the client
+	done chan *common.Operation
+
+	peerProposed chan *common.PeerOperation
 }
 
 // a singleton
@@ -34,7 +39,6 @@ func GetReducer() *Reduce {
 	onceRed.Do(func() {
 		instantiatedReduce = &Reduce{}
 		instantiatedReduce.historyBuffer = make([]*common.PeerOperation, 0, 1024)
-		instantiatedReduce.proposed = make(chan *common.PeerOperation, 1024)
 
 		// the server can only have one ready operation at a time, will
 		// need to force this by making the channel unbuffered, so
@@ -42,18 +46,41 @@ func GetReducer() *Reduce {
 		// otherwise, an operation could happen locally and be
 		// unaccounted for in operations waiting in the ready queue.
 		// a new operation can only be processed after the
-		// ready queue is emptied.
-		instantiatedReduce.ready = make(chan *common.Operation, 1024)
+		// causallyReady channel is emptied.
+		instantiatedReduce.causallyReady = make(chan *common.PeerOperation)
+		instantiatedReduce.peerProposed = make(chan *common.PeerOperation, 1024)
+		instantiatedReduce.done = make(chan *common.Operation, 1024)
 	})
 	return instantiatedReduce
 }
 
 // these come from other peers
 func (r *Reduce) PeerPropose(o *common.PeerOperation) {
-	// increment vector clock and update according the the peer's vector clock
-	clock.GetLocalVectorClock().IncrementClock().UpdateClock(&o.VClock)
+	log.Info("Peer proposed an operation: ", o)
+	r.peerProposed <- o
+}
 
-	r.proposed <- o
+func (r *Reduce) queueCausallyReady() {
+
+	// find causally ready operation
+	for proposed := range r.peerProposed {
+		// log.Warn("BENW num in proposed: ", len(r.peerProposed))
+		// log.Warn(proposed)
+		if clock.GetLocalVectorClock().CausallyPreceding(&proposed.VClock) {
+			log.Info("Found causally ready operation: ", proposed)
+			r.causallyReady <- proposed
+			// log.Warn("BENW 2")
+			// increment vector clock and update according the the peer's vector clock
+			// clock.GetLocalVectorClock().IncrementClock().UpdateClock(&proposed.VClock)
+			clock.GetLocalVectorClock().UpdateClock(&proposed.VClock)
+			// log.Warn("My clock is at: ", clock.GetLocalVectorClock())
+			continue
+		} else {
+			// log.Warn("Op is not causally ready. my state: ", clock.GetLocalVectorClock(), "; proposed clock: ", proposed.VClock)
+			// put operation back on channel until it's causally ready
+			r.peerProposed <- proposed
+		}
+	}
 }
 
 // these come from the ui
@@ -70,13 +97,14 @@ func (r *Reduce) ClientPropose(o *common.Operation) {
 
 // returns a channel of ready operations that a client can access
 func (r *Reduce) Ready() <-chan *common.Operation {
-	return r.ready
+	return r.done
 }
 
 func (r *Reduce) Start() {
-	for {
-		// pop causally ready operation off proposed queue
-		oNew := <-r.proposed
+	go r.queueCausallyReady()
+
+	// pop causally ready operation off proposed queue
+	for oNew := range r.causallyReady {
 
 		// (1) Undo
 		var i int
@@ -90,7 +118,7 @@ func (r *Reduce) Start() {
 			}
 
 			//   write the undo of each operation in HB to ready
-			r.ready <- common.UndoOperation(eo)
+			r.done <- common.UndoOperation(eo)
 		}
 
 		undone := make([]*common.PeerOperation, 1024)
@@ -128,7 +156,7 @@ func (r *Reduce) Start() {
 				break
 			}
 			r.log(op)
-			r.ready <- &op.Operation
+			r.done <- &op.Operation
 		}
 	}
 }
@@ -150,8 +178,6 @@ func (r *Reduce) got(o *common.PeerOperation) *common.PeerOperation {
 	if noOpsIndependent {
 		// put o in outgoing queue, o can be exectuted
 		return o
-		// r.ready <- &o.Operation
-		// continue
 	}
 
 	// section 2 of REDUCE algorithm
@@ -171,8 +197,6 @@ func (r *Reduce) got(o *common.PeerOperation) *common.PeerOperation {
 		// EO := LIT(O, L[k,m])
 		eo := LIT(o, r.historyBuffer[k:])
 		return eo
-		// r.ready <- &eo.Operation
-		// continue
 	}
 
 	// if im here, then there is at least one operation which causally
@@ -209,7 +233,6 @@ func (r *Reduce) got(o *common.PeerOperation) *common.PeerOperation {
 	oPrime := LET(o, reverse(l1Prime))
 
 	eo := LIT(oPrime, r.historyBuffer[k:])
-	// r.ready <- &eo.Operation
 	return eo
 }
 
@@ -225,4 +248,11 @@ func reverse(sl []*common.PeerOperation) []*common.PeerOperation {
 	}
 
 	return rev
+}
+
+func del(a []*common.PeerOperation, i int) []*common.PeerOperation {
+	copy(a[i:], a[i+1:])
+	a[len(a)-1] = nil // or the zero value of T
+	a = a[:len(a)-1]
+	return a
 }

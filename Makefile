@@ -18,3 +18,8 @@ docker:
 test:
 	go test github.com/iowaguy/nudocs/common/communication
 	go test github.com/iowaguy/nudocs/common/clock
+
+.PHONY: docker-clean
+docker-clean:
+	docker ps -a | grep nudocs | awk '{print $1}' | xargs docker stop
+	docker ps -a | grep nudocs | awk '{print $1}' | xargs docker rm
