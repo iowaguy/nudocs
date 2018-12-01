@@ -13,3 +13,6 @@
 /operational-transform
 /nudocs
 /client/client
+
+#vim swap files
+*.go.swp
