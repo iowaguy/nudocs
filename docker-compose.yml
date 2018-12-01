@@ -22,18 +22,18 @@ services:
     <<: *peer
     command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
     hostname: peer2
-  peer3:
-    <<: *peer
-    command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
-    hostname: peer3
-  peer4:
-    <<: *peer
-    command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
-    hostname: peer4
-  peer5:
-    <<: *peer
-    command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
-    hostname: peer5
+  # peer3:
+  #   <<: *peer
+  #   command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
+  #   hostname: peer3
+  # peer4:
+  #   <<: *peer
+  #   command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
+  #   hostname: peer4
+  # peer5:
+  #   <<: *peer
+  #   command: /nudocs/nudocs -p 3333 -h /nudocs/test/hostsfile.txt
+  #   hostname: peer5
 
   client1:
     <<: *client
@@ -41,15 +41,15 @@ services:
   client2:
     <<: *client
     command: /nudocs/client/client -h peer2 -p 3333 -f /nudocs/test/test.txt -o 5
-  client3:
-    <<: *client
-    command: /nudocs/client/client -h peer3 -p 3333 -f /nudocs/test/test.txt -o 5
-  client4:
-    <<: *client
-    command: /nudocs/client/client -h peer4 -p 3333 -f /nudocs/test/test.txt -o 5
-  client5:
-    <<: *client
-    command: /nudocs/client/client -h peer5 -p 3333 -f /nudocs/test/test.txt -o 5
+  # client3:
+  #   <<: *client
+  #   command: /nudocs/client/client -h peer3 -p 3333 -f /nudocs/test/test.txt -o 5
+  # client4:
+  #   <<: *client
+  #   command: /nudocs/client/client -h peer4 -p 3333 -f /nudocs/test/test.txt -o 5
+  # client5:
+  #   <<: *client
+  #   command: /nudocs/client/client -h peer5 -p 3333 -f /nudocs/test/test.txt -o 5
 
 networks:
   nudocs-net:
