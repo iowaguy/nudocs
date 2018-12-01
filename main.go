@@ -188,19 +188,9 @@ func determineHostID(hosts []string) int {
 func receivePeerOperations(conn net.Conn, ot core.OpTransformer) {
 	defer conn.Close()
 
-	// Make a buffer to hold incoming data.
-	buf := make([]byte, 1024)
-
+	r := bufio.NewReader(conn)
 	for {
-
-		// Read the incoming connection into the buffer.
-		n, err := conn.Read(buf)
-		if err != nil {
-			log.Error("Error reading: ", err.Error())
-			break
-		}
-
-		o := common.ParseOperation(buf, n)
+		o := common.ParsePeerOperation(r)
 
 		// send operation to algorithm to be processed
 		ot.PeerPropose(o)

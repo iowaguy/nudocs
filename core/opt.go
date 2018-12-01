@@ -64,8 +64,6 @@ func (r *Reduce) queueCausallyReady() {
 
 	// find causally ready operation
 	for proposed := range r.peerProposed {
-		// log.Warn("BENW num in proposed: ", len(r.peerProposed))
-		// log.Warn(proposed)
 		if clock.GetLocalVectorClock().CausallyPreceding(&proposed.VClock) {
 			log.Info("Found causally ready operation: ", proposed)
 			r.causallyReady <- proposed
@@ -218,6 +216,7 @@ func (r *Reduce) got(o *common.PeerOperation) *common.PeerOperation {
 	// c1 is the first causally preceding operation following at least
 	// one independent operation of o
 	c1 := cs[0]
+	log.Warn(c1)
 	eoc1Prime := LET(l1[0], reverse(r.historyBuffer[k:c1-1]))
 	l1Prime := make([]*common.PeerOperation, len(r.historyBuffer))
 	l1Prime = append(l1Prime, eoc1Prime)

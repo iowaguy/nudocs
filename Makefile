@@ -21,5 +21,5 @@ test:
 
 .PHONY: docker-clean
 docker-clean:
-	docker ps -a | grep nudocs | awk '{print $1}' | xargs docker stop
-	docker ps -a | grep nudocs | awk '{print $1}' | xargs docker rm
+	docker ps -a | grep nudocs | awk '{print $$1}' | xargs docker stop
+	docker ps -a | grep nudocs | awk '{print $$1}' | xargs docker rm

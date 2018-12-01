@@ -1,15 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net"
-	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -120,33 +119,9 @@ func deleteChar(op *common.Operation) {
 func readOpsFromServer(conn net.Conn) {
 	defer conn.Close()
 
-	// Make a buffer to hold incoming data.
-	buf := make([]byte, 1024)
-
+	r := bufio.NewReader(conn)
 	for {
-		// Read the incoming connection into the buffer.
-		n, err := conn.Read(buf)
-		if err != nil {
-			log.Error("Error reading:", err.Error())
-			os.Exit(1)
-		}
-
-		for _, sBuf := range strings.Split(string(buf[:n]), "\n") {
-			if len(sBuf) == 0 {
-				continue
-			}
-
-			var o common.Operation
-			// log.Warn(sBuf)
-			o.OpType = string(sBuf[0])
-			o.Character = string(sBuf[1])
-			if o.Position, err = strconv.Atoi(string(sBuf[2:len(sBuf)])); err != nil {
-				log.Warn("Error: could not parse position int: ", err.Error())
-				break
-			}
-
-			serverOps <- &o
-		}
+		serverOps <- common.ParseOperation(r)
 	}
 }
 

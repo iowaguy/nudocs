@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bufio"
 	"fmt"
 	"strconv"
 	"strings"
@@ -25,7 +26,7 @@ func (o *Operation) String() string {
 }
 
 func (o *PeerOperation) String() string {
-	return fmt.Sprintf(o.OpType + o.Character + strconv.Itoa(o.Position) + " " + o.VClock.String())
+	return fmt.Sprintf(o.OpType + o.Character + strconv.Itoa(o.Position) + " " + o.VClock.String() + "\n")
 }
 
 func NewPeerOperation(opType, character string, position int) *PeerOperation {
@@ -55,8 +56,10 @@ func UndoOperation(op *PeerOperation) *Operation {
 	}
 }
 
-func ParseOperation(ops []byte, length int) *PeerOperation {
-	log.Info("Peer message=", string(ops[:length]))
+func ParsePeerOperation(r *bufio.Reader) *PeerOperation {
+	ops := readString(r)
+
+	log.Info("Peer message=", string(ops))
 
 	var o PeerOperation
 	o.OpType = string(ops[0])
@@ -78,7 +81,7 @@ func ParseOperation(ops []byte, length int) *PeerOperation {
 		log.Panic("Error: could not parse position int: ", err.Error())
 	}
 
-	vc := string(ops[vcStart:length])
+	vc := string(ops[vcStart:])
 	log.Info("Vector clock string=", vc)
 	if vClock, err := clock.ParseVectorClock(vc); err != nil {
 		log.Panic("Error: could not parse vector clock: ", err.Error())
@@ -87,4 +90,37 @@ func ParseOperation(ops []byte, length int) *PeerOperation {
 	}
 
 	return &o
+}
+
+func ParseOperation(r *bufio.Reader) *Operation {
+	s := readString(r)
+
+	var o Operation
+	o.OpType = string(s[0])
+	o.Character = string(s[1])
+
+	var err error
+	if o.Position, err = strconv.Atoi(s[2 : len(s)-1]); err != nil {
+		log.Panic("Error: could not parse position int: ", err.Error())
+	}
+
+	return &o
+}
+
+func readString(r *bufio.Reader) string {
+	// Read the incoming connection into the buffer.
+	s, err := r.ReadString(byte('\n'))
+	if err != nil {
+		log.Panic("Error reading: ", err.Error())
+	}
+
+	if len(s) < 3 {
+		// character was a newline, so need to continue parsing
+		s2, err := r.ReadString(byte('\n'))
+		if err != nil {
+			log.Panic("Error reading: ", err.Error())
+		}
+		s = s + s2
+	}
+	return s
 }
