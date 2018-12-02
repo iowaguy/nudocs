@@ -160,15 +160,10 @@ The idea of computer supported cooperation work (CSCW) was a popular area of res
 Our classmates, Connor and Giorgio, who were working on a similar concept, made the discovery early on that the dOPT algorithm is incomplete. What this means is that in certain situations having to do with concurrent edits at different sites, operations can be transformed incorrectly. This leads to divergence. As a result of this major issue, we were forced to look into the research and find an alternative algorithm to implement. Looking to maintain the peer-to-peer aspect, we chose an algorithm called REDUCE (Sun et al., 1998). The REDUCE algorithm introduces two new ideas are essential to a correct Operational Transformation (OT). The first is what the authors call ``undo/do/redo''. This means that in order to guarantee convergence, an operation must be applied to a document in the same state as the one in which it was generated. So, if two sites have a series of operations that they have done locally \textit{after} a particular operation was generated on another peer (according to a vector clock that is passed with each operation), then all of those local operations must be undone, so the remote operation can be transformed and applied, and the the undone local operations themselves must be transformed and reapplied. The other idea is that there are actually two different types of transformation functions that are called in different contexts, they are ``inclusion transformations'' and ``exclusion transformations''. Inclusion transformations are roughly equivalent to the transformation functions in dOPT. They are applied when an operation, \(O_a\), should be transformed against \(O_b\) in such a way that \(O_b\)'s effect on the document is accounted for in \(O_a\). Exclusion transformations are a new kind of transformation that are needed as part of the undo/do/redo scheme. They are applied when an operation, \(O_a\), should be transformed against \(O_b\) in such a way that \(O_b\)'s effect on the document is not included in \(O_a\). This new type of transformation is necessary because it guarantees ``intention preservation''. Intention preservation means that after an operation has been applied on a remote node, the same effect should have happened as on the originating node. From the concurrent delete example above, this would mean that only one of the deletes actually changed the document state--the other would be converted into a nop. These two changes in reduce are necessary and sufficient for correctness.\\
 
 \section{Challenges}
-Having decided to implement REDUCE, we came to discover that the algorithm is quite complicated
+Having decided to implement REDUCE, we came to discover that the algorithm is quite complicated. Each operation is passed around to the other peers which themselves generate a slew of new operations as part of the undo/do/redo and transformations. This created many difficulties in debugging, because even if we were to extract the current history of operations that were applied by each peer, it would not be sufficient to know that the document would be converging, because each peer will have executed differently transformed operations based on their own unique document state at the time messages were received from other peers. Testing our program also had its complications because of the complexity of the algorithm. REDUCE has many execution paths, and some of them depend on the timing of relative operations (in terms of their vector clocks). Forcing the timing to meet the constraints of a particular execution path was non-trivial. The most effective testing method we found was to randomly generate operations, but that is not targeted and meant that we were unable to reproduce bugs by rerunning the testing environment.\\
 
+\section{System Architecture}
 
-%% challenges
-%% discovery of initial algorithm failing
-%% new alg is much harder
-%%%% why testing was difficult
-
-%% architecture
 
 %% state diagram
 
@@ -180,7 +175,7 @@ Having decided to implement REDUCE, we came to discover that the algorithm is qu
 %% conclusion
 
 %% architecture
-\section{System Architecture}
+
 
 \subsection{Orchestration}
 
