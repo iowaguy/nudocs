@@ -1,17 +1,16 @@
 
-;; https://www.gnu.org/software/emacs/manual/html_node/elisp/Network-Processes.html
-;; (setq pserv (make-network-process :name "nu-docs" :service 3333))
 
+(defun nudocs-send-raw (pserv s)
+  (progn (message s)
+         (process-send-string pserv s)))
 
+(defun nudocs-send-operation (pserv c)
+  (nudocs-send-raw pserv (format "%s%c%d\n" c last-command-event (- (point) 2))))
 
-(defun nudoc-send-string (c)
-  (process-send-string pserv (format "%s%c%d" c last-command-event (point))))
-
-(defun nudocs-post-command-hook ()
-  (setq c "")
-  (cond ((= last-command-event 127) (nudoc-send-string "d"))
-        ((= last-command-event 4) (nudoc-send-string "d"))
-        ((> last-command-event 64) (nudoc-send-string "i"))))
+(defun nudocs-post-command-hook (pserv)
+  (cond ((= last-command-event 127) (nudocs-send-operation pserv "d"))
+        ((= last-command-event 4) (nudocs-send-operation pserv "d"))
+        ((> last-command-event 64) (nudocs-send-operation pserv "i"))))
 
 (defun handle-server-reply (process content)
   ;; get messages from server, execute commands it specifies
@@ -21,10 +20,12 @@
 (defun nudocs-mode-enter ()
   "Called when entering nudocs mode"
   (progn
-    (make-variable-buffer-local
-     (defvar pserv (make-network-process :name "nudocs" :service 3333)))
-    (add-hook 'post-command-hook 'nudocs-post-command-hook nil t)
-    (set-process-filter pserv 'handle-server-reply)))
+    (message "helolo")
+    ;; https://www.gnu.org/software/emacs/manual/html_node/elisp/Network-Processes.html
+    (setq pserv (make-network-process :name "nudocs" :service 3333))
+    (set (make-local-variable 'peer-server) pserv)
+    (nudocs-send-raw pserv "client")
+    (add-hook 'post-command-hook (lambda () (nudocs-post-command-hook pserv)) nil t)))
 
 (defun nudocs-mode-exit ()
   (remove-hook 'post-command-hook 'nudocs-post-command-hook t))
@@ -38,18 +39,4 @@
     (nudocs-mode-exit)))
 
 
-  ;; (progn
-  ;;   (setup-nudoc-connections)
-  ;;   (add-hook 'post-command-hook 'nudocs-post-command-hook nil t)
-  ;;   (set-process-filter pserv 'handle-server-reply)))
-
-
-;; (provide 'nudocs-mode)
-
-
-
-
-
-;; TODO
-;; get messages from server, execute commands it specifies
-;; convert the code above into a minor-mode
+(provide 'nudocs-mode)

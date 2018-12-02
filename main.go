@@ -34,7 +34,9 @@ func init() {
 	Formatter.TimestampFormat = "02-01-2006 15:04:05"
 	Formatter.FullTimestamp = true
 	log.SetFormatter(Formatter)
-	log.SetReportCaller(true)
+
+	// used for debugging, has serious performance impact
+	// log.SetReportCaller(true)
 	log.SetLevel(log.WarnLevel)
 }
 
@@ -69,8 +71,6 @@ func main() {
 
 	// block until client is connected
 	<-client.ClientConnected
-
-	// problem: when start is called, peer connection is not available
 
 	// can pass in nil as client arg, because a client will have already been created
 	client.NewClient(nil).Start(core.GetReducer())
