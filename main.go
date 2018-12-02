@@ -34,6 +34,7 @@ func init() {
 	Formatter.TimestampFormat = "02-01-2006 15:04:05"
 	Formatter.FullTimestamp = true
 	log.SetFormatter(Formatter)
+	log.SetReportCaller(true)
 	log.SetLevel(log.WarnLevel)
 }
 
@@ -76,7 +77,6 @@ func main() {
 
 	// start algorithm
 	go core.GetReducer().Start()
-
 	// block until a go routine returns, which should never happen
 	var wg sync.WaitGroup
 	wg.Add(1)

@@ -58,9 +58,6 @@ func UndoOperation(op *PeerOperation) *Operation {
 
 func ParsePeerOperation(r *bufio.Reader) *PeerOperation {
 	ops := readString(r)
-
-	log.Info("Peer message=", string(ops))
-
 	var o PeerOperation
 	o.OpType = string(ops[0])
 	o.Character = string(ops[1])
@@ -94,16 +91,13 @@ func ParsePeerOperation(r *bufio.Reader) *PeerOperation {
 
 func ParseOperation(r *bufio.Reader) *Operation {
 	s := readString(r)
-
 	var o Operation
 	o.OpType = string(s[0])
 	o.Character = string(s[1])
-
 	var err error
 	if o.Position, err = strconv.Atoi(s[2 : len(s)-1]); err != nil {
 		log.Panic("Error: could not parse position int: ", err.Error())
 	}
-
 	return &o
 }
 
@@ -111,16 +105,12 @@ func readString(r *bufio.Reader) string {
 	// Read the incoming connection into the buffer.
 	s, err := r.ReadString(byte('\n'))
 	if err != nil {
-		log.Panic("Error reading: ", err.Error())
+		log.Panic("Error reading: ", err.Error()+" received: "+s)
 	}
 
 	if len(s) < 3 {
 		// character was a newline, so need to continue parsing
-		s2, err := r.ReadString(byte('\n'))
-		if err != nil {
-			log.Panic("Error reading: ", err.Error())
-		}
-		s = s + s2
+		s = s + readString(r)
 	}
 	return s
 }
