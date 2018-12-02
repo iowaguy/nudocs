@@ -1,0 +1,265 @@
+\documentclass{article}
+
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+%% \usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+\usepackage{enumitem}
+%% \usepackage[shortlabels]{enumerate}
+\usepackage{multicol}
+\usepackage{centernot}
+%% \usepackage{textcomp}
+%% \usepackage{ifthen}
+%% \usepackage{algorithmic}
+
+\usetikzlibrary{automata,positioning}
+
+%
+% Basic Document Settings
+%
+
+\topmargin=-0.45in
+\evensidemargin=0in
+\oddsidemargin=0in
+\textwidth=6.5in
+\textheight=9.0in
+\headsep=0.25in
+
+\linespread{1.1}
+
+\pagestyle{fancy}
+\lhead{\hmwkAuthorName}
+\chead{\hmwkClass: \hmwkTitle}
+\rhead{\firstxmark}
+\lfoot{\lastxmark}
+\cfoot{\thepage}
+
+\renewcommand\headrulewidth{0.4pt}
+\renewcommand\footrulewidth{0.4pt}
+\newcommand{\supe}[1]{\ensuremath{^{\textrm{#1}}}}
+\newcommand{\sub}[1]{\ensuremath{_{\textrm{#1}}}}
+
+\setlength\parindent{0pt}
+
+%
+% Create Problem Sections
+%
+
+\newcommand{\enterProblemHeader}[1]{
+    \nobreak\extramarks{}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+}
+
+\newcommand{\exitProblemHeader}[1]{
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \stepcounter{#1}
+    \nobreak\extramarks{Problem \arabic{#1}}{}\nobreak{}
+}
+
+%% \setcounter{secnumdepth}{0}
+\newcounter{partCounter}
+\newcounter{homeworkProblemCounter}
+\setcounter{homeworkProblemCounter}{1}
+\nobreak\extramarks{Problem \arabic{homeworkProblemCounter}}{}\nobreak{}
+
+%
+% Homework Problem Environment
+%
+% This environment takes an optional argument. When given, it will adjust the
+% problem counter. This is useful for when the problems given for your
+% assignment aren't sequential. See the last 3 problems of this template for an
+% example.
+%
+\newenvironment{homeworkProblem}[1][-1]{
+    \ifnum#1>0
+        \setcounter{homeworkProblemCounter}{#1}
+    \fi
+    \section{Problem \arabic{homeworkProblemCounter}}
+    \setcounter{partCounter}{1}
+    \enterProblemHeader{homeworkProblemCounter}
+}{
+    \exitProblemHeader{homeworkProblemCounter}
+}
+
+%
+% Homework Details
+%   - Title
+%   - Due date
+%   - Class
+%   - Instructor
+%   - Author
+%
+
+\newcommand{\hmwkTitle}{Project \#1 Report}
+\newcommand{\hmwkDueDate}{December 3, 2018}
+\newcommand{\hmwkClass}{CS7610}
+\newcommand{\hmwkClassInstructor}{Professor Cristina Nita-Rotaru}
+\newcommand{\hmwkAuthorName}{\textbf{Ben Weintraub and Jaison Titus}}
+
+%
+% Title Page
+%
+
+\title{
+    \vspace{2in}
+    \textmd{\textbf{\hmwkClass:\ \hmwkTitle}}\\
+    \normalsize\vspace{0.1in}\small{Due\ on\ \hmwkDueDate}\\
+    \vspace{0.1in}\large{\textit{\hmwkClassInstructor}}
+}
+
+\author{\hmwkAuthorName}
+\date{}
+
+\renewcommand{\part}[1]{\textbf{\large Part \Alph{partCounter}}\stepcounter{partCounter}\\}
+
+%
+% Various Helper Commands
+%
+
+% Useful for algorithms
+\newcommand{\alg}[1]{\textsc{\bfseries \footnotesize #1}}
+
+% For derivatives
+\newcommand{\deriv}[1]{\frac{\mathrm{d}}{\mathrm{d}x} (#1)}
+
+% For partial derivatives
+\newcommand{\pderiv}[2]{\frac{\partial}{\partial #1} (#2)}
+
+% Integral dx
+\newcommand{\dx}{\mathrm{d}x}
+
+% Alias for the Solution section header
+\newcommand{\solution}{\textbf{\large Solution}\\}
+
+% Probability commands: Expectation, Variance, Covariance, Bias
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+\newcommand{\Bias}{\mathrm{Bias}}
+
+\begin{document}
+
+\maketitle
+
+\pagebreak
+% describing the system architectures, state diagrams, design decisions, and implementation issues
+
+%% intro
+\section{Introduction}
+For our final project, we have chosen to implement a collaborative document editor.
+
+%%context
+\section{Context}
+The idea of computer supported cooperation work (CSCW) was a popular area of research in the late 1980's and 1990's. Until 1989, two methods were used for sharing documents, 1) locking; and 2) transactions. If locking was used, then when one user went make an edit, a lock was placed on the document to prevent concurrent and possible destructive edits. There are various optimizations for locking, like locking only a part of the document, but in the end, it is not really possible for the system to know when a user is done editing or just pausing and so locking is not a good strategy. Transactions were proposed as a strategy, and can be effective. They have a cost however, because to execute a transaction in a distributed system, there will need to be at least a two phase commit among all participants, and conflicts may need to be resolved by some sort of consensus. While possible, this means that an edit made locally by one user cannot show up in their document until the transaction completes, resulting in unusable latency for document editing software. In Concurrency Control in Groupware Systems [Ellis et al., 1989] an idea is proposed called Operational Transformation. The high level idea is the following. Any edits that are made locally show up immediately in the editor, and then are sent out to the other peers. The other peers perform a transformation on the operation such that the original operation can be applied to a potentially different state on each peer. For instance, imagine two users concurrently delete the first character in a document. If the operation was applied immediately at both sites, and then applied again after receiving the same operation from the other peer, then two characters would have been deleted, when clearly both users only wanted one character deleted. Operational Transformations are one way to solve this problem. The same paper proposed an algorithm called dOPT (distributed Operational Transformation), and our goal was to implement this.
+
+\section{Challenges}
+
+
+
+
+
+%% challenges
+%% discovery of initial algorithm failing
+%% new alg is much harder
+%%%% why testing was difficult
+
+%% architecture
+
+%% state diagram
+
+%% design decisions
+
+%% implementation issues
+%%%%%%% everything was hard, had we known, would have chosen a CRDT algo instead
+
+%% conclusion
+
+%% architecture
+\section{System Architecture}
+
+\subsection{Orchestration}
+
+\subsection{Sending Messages}
+
+\subsection{Receiving Messages}
+
+\subsubsection{DataMessage}
+
+
+\subsubsection{AckMessage}
+
+
+
+
+
+\subsubsection{SeqMessage}
+
+
+\subsubsection{MarkerMessage}
+
+\subsubsection{MessageStorage}
+
+
+\subsection{Taking Snapshots}
+
+
+\subsection{Printing Results}
+
+
+\section{State Diagram}
+The state diagram is represented below in Figure 1.\\
+
+\begin{figure}[h]
+  \centering
+  \begin{tikzpicture}[shorten >=1pt,node distance=4cm,on grid,auto]
+    \node[state, initial] (init)   {initial};
+    \node[state] (exit) [below=of init] {exit};
+    \node[state] (sending) [right=of init] {sending};
+    \node[state] (receiving) [right=of sending] {receiving};
+    \node[state] (delivery) [below=of receiving] {delivery};
+    \node[state] (startsnap) [right=of receiving] {\begin{tabular}{c} start \\ snapshot \end{tabular}};
+    \node[state] (compsnap) [above=of startsnap] {\begin{tabular}{c} complete \\ snapshot \end{tabular}};
+    \path[->]
+    (init)
+    edge node {invalid args} (exit)
+    edge [bend left] node {if sender} (sending)
+    edge [bend right] node  {if receiver} (receiving)
+    (sending)
+    edge [bend right] node {data/seq} (receiving)
+    (receiving)
+    edge [bend right] node {ack} (sending)
+    edge [bend left] node {seq} (delivery)
+    edge node {\begin{tabular}{c} count \\ reached\end{tabular}} (startsnap)
+    (delivery)
+    edge [bend left] node {} (receiving)
+    (startsnap)
+    edge node {} (compsnap)
+    edge [bend right=70] node {marker} (sending)
+    (compsnap)
+    edge node {} (receiving)
+  \end{tikzpicture}
+  \caption{State Diagram, marking states and possible transitions.}
+  \label{fig:multiple5}
+\end{figure}
+
+\section{Test Cases}
+
+
+\section{Design Decisions}
+
+\section{Implementation Issues}
+
+\section{Conclusion}
+
+\section{Sources}
+\begin{enum}
+  \list Ellis, Clarence A., and Simon J. Gibbs. "Concurrency control in groupware systems." Acm Sigmod Record. Vol. 18. No. 2. ACM, 1989.
+  \list Cormack, Gordon V. "A counterexample to the distributed operational transform and a corrected algorithm for point-to-point communication." University of Waterloo Technical Report (1995).
+  \list Sun, Chengzheng, and Clarence Ellis. "Operational transformation in real-time group editors: issues, algorithms, and achievements." Proceedings of the 1998 ACM conference on Computer supported cooperative work. ACM, 1998.
+  \list Sun, Chengzheng, et al. "Achieving convergence, causality preservation, and intention preservation in real-time cooperative editing systems." ACM Transactions on Computer-Human Interaction (TOCHI) 5.1 (1998): 63-108.
+\end{enum}
+\end{document}
