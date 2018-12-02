@@ -1,13 +1,13 @@
 package core
 
 import (
-	"sync"
-
+	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/iowaguy/nudocs/common"
 	"github.com/iowaguy/nudocs/common/clock"
 	"github.com/iowaguy/nudocs/common/communication"
 	"github.com/iowaguy/nudocs/membership"
+	"sync"
 )
 
 type OpTransformer interface {
@@ -56,7 +56,7 @@ func GetReducer() *Reduce {
 
 // these come from other peers
 func (r *Reduce) PeerPropose(o *common.PeerOperation) {
-	log.Info("Peer proposed an operation: ", o)
+	fmt.Println("Peer proposed an operation: ", o)
 	r.peerProposed <- o
 }
 
@@ -78,13 +78,15 @@ func (r *Reduce) queueCausallyReady() {
 
 // these come from the ui
 func (r *Reduce) ClientPropose(o *common.Operation) {
+	fmt.Println("Client Proposed operation: " + o.String())
 	// increment vector clock
 	clock.GetLocalVectorClock().IncrementClock()
-
+	po := common.NewPeerOperation(o.OpType, o.Character, o.Position)
+	r.log(po)
 	// send to other peers
 	for i, peer := range membership.GetMembership().GetPeers() {
 		log.Info("peer=", i, peer.String())
-		communication.SendToPeer(&peer, common.NewPeerOperation(o.OpType, o.Character, o.Position))
+		communication.SendToPeer(&peer, po)
 	}
 }
 
@@ -145,7 +147,6 @@ func (r *Reduce) Start() {
 		} else {
 			transformedRedos = append(transformedRedos, eoNew)
 		}
-
 		// write transformed ops to ready
 		for _, op := range transformedRedos {
 			if op == nil {
@@ -238,6 +239,25 @@ func (r *Reduce) got(o *common.PeerOperation) *common.PeerOperation {
 
 func (r *Reduce) log(o *common.PeerOperation) {
 	r.historyBuffer = append(r.historyBuffer, o)
+	r.printDocAfterApplyingHistoryBuffer()
+}
+
+func (r *Reduce) printHistoryBuffer() {
+	//printing history buffer
+	hbstr := ""
+	for _, op := range r.historyBuffer {
+		hbstr = hbstr + "-" + op.String()
+	}
+	fmt.Print("Printing history buffer: \n" + hbstr)
+}
+
+func (r *Reduce) printDocAfterApplyingHistoryBuffer() {
+	//doc := "My name is Jaison!"
+	doc := "0000000000000000000000000000000000000000000000000000000000000000000000"
+	for _, op := range r.historyBuffer {
+		doc = common.ApplyOp(&op.Operation, doc)
+	}
+	fmt.Println(doc)
 }
 
 func reverse(sl []*common.PeerOperation) []*common.PeerOperation {

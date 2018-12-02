@@ -75,23 +75,23 @@ func Tail(ol []*common.PeerOperation) []*common.PeerOperation {
 
 func Save_LI(o1_1, o1, o2 *common.PeerOperation) {
 	//TODO:
-	log.Warn("Save_LI is not implemented yet")
+	log.Panic("Save_LI is not implemented yet")
 }
 
 func Save_RA(o1, o2 *common.PeerOperation) {
 	//TODO:
-	log.Warn("Save_RA is not implemented yet")
+	log.Panic("Save_RA is not implemented yet")
 }
 
 func Check_LI(o1, o2 *common.PeerOperation) bool {
 	//TODO:
-	log.Warn("Check_LI is not implemented yet. Returning false by default.")
+	log.Panic("Check_LI is not implemented yet. Returning false by default.")
 	return false
 }
 
 func Recover_LI(o *common.PeerOperation) *common.PeerOperation {
 	//TODO:
-	log.Warn("Recover_LI is not implemented yet. Returning same operation.")
+	log.Panic("Recover_LI is not implemented yet. Returning same operation.")
 	return o
 }
 

@@ -45,15 +45,9 @@ func (c *Client) SendClientOperations(ot core.OpTransformer) {
 
 func (c *Client) ReceiveClientOperations(ot core.OpTransformer) {
 	defer c.conn.Close()
-
-	// Make a buffer to hold incoming data.
-	// buf := make([]byte, 1024)
-
 	r := bufio.NewReader(c.conn)
-
 	for {
 		o := common.ParseOperation(r)
-
 		// send operation to algorithm to be processed
 		// this function will handle sending to the rest of the peers
 		ot.ClientPropose(o)

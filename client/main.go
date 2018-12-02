@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -34,12 +33,12 @@ func init() {
 	Formatter.TimestampFormat = "02-01-2006 15:04:05"
 	Formatter.FullTimestamp = true
 	log.SetFormatter(Formatter)
+	log.SetReportCaller(true)
 	log.SetLevel(log.WarnLevel)
 }
 
 func main() {
 	flag.Parse()
-
 	log.Info("Host specified=" + *host + "; Port specified=" + strconv.Itoa(*port))
 	localOps = make(chan *common.Operation, 100)
 
@@ -62,6 +61,7 @@ func main() {
 
 	// read document
 	doc = readTestDoc()
+	fmt.Println("Initial Doc: " + doc + "(" + strconv.Itoa(len(doc)) + ")")
 
 	// generate random ops and send to server
 	go randomOps(conn)
@@ -72,53 +72,16 @@ func main() {
 	for {
 		select {
 		case op := <-serverOps:
-			applyOp(op)
+			doc = common.ApplyOp(op, doc)
 		case op := <-localOps:
-			applyOp(op)
+			doc = common.ApplyOp(op, doc)
 		}
+		fmt.Println("Doc: " + doc + "(" + strconv.Itoa(len(doc)) + ")")
 	}
-}
-
-func applyOp(op *common.Operation) {
-
-	if op.OpType == "i" {
-		insertChar(op)
-	} else if op.OpType == "d" {
-		deleteChar(op)
-	} else {
-		log.Warn("Unrecognized operation type: " + op.OpType)
-		return
-	}
-	fmt.Print(doc)
-}
-
-func insertChar(op *common.Operation) {
-	r := []rune(op.Character)
-	var buffer bytes.Buffer
-	for i, char := range doc {
-		buffer.WriteRune(char)
-		if i == op.Position-1 {
-			buffer.WriteRune(r[0])
-		}
-	}
-
-	doc = buffer.String()
-}
-
-func deleteChar(op *common.Operation) {
-	var buffer bytes.Buffer
-	for i, char := range doc {
-		if i != op.Position-1 {
-			buffer.WriteRune(char)
-		}
-	}
-
-	doc = buffer.String()
 }
 
 func readOpsFromServer(conn net.Conn) {
 	defer conn.Close()
-
 	r := bufio.NewReader(conn)
 	for {
 		serverOps <- common.ParseOperation(r)
@@ -126,7 +89,7 @@ func readOpsFromServer(conn net.Conn) {
 }
 
 func randomOps(conn net.Conn) {
-
+	time.Sleep(2 * time.Second)
 	// this is just for testing edits in series, no overlap
 	if *serialEditsTest {
 		mult, err := strconv.Atoi(string((*host)[4]))
@@ -141,27 +104,33 @@ func randomOps(conn net.Conn) {
 
 		// write op to a channel
 		localOps <- op
-
+		fmt.Println("Sending op to server: " + op.String() + " doc length: " + strconv.Itoa(len(doc)))
 		communication.SendToServer(conn, op.String()+"\n")
 		time.Sleep(1 * time.Second)
 	}
 }
 
+func getRandomOp(opType string) common.Operation {
+	var o common.Operation
+	o.OpType = opType
+	if opType == "d" {
+		o.Character = string(doc[o.Position])
+		return o
+	}
+	o.Character = string(byte(rand.Intn(26) + 65))
+	return o
+}
+
 func genRandomOp() *common.Operation {
 	rand.Seed(time.Now().UTC().UnixNano())
 	var o common.Operation
-
-	o.Position = rand.Intn(len(doc))
 	if rand.Intn(2) == 1 {
-		o.OpType = "i"
-		o.Character = string(byte(rand.Intn(26) + 65))
+		o = getRandomOp("i")
 	} else {
-		o.OpType = "d"
-		o.Character = string(doc[o.Position])
+		o = getRandomOp("d")
 	}
-
+	o.Position = rand.Intn(len(doc))
 	log.Info("op=", o.String())
-
 	return &o
 }
 
