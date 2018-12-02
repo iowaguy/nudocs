@@ -16,3 +16,4 @@
 
 #vim swap files
 *.go.swp
+/test/nudocs.log

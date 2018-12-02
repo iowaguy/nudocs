@@ -3,10 +3,18 @@ TARGET = nudocs
 $(TARGET): client server
 
 client:
-	go build -v -i -o client/client client/main.go
+	go build -v -o client/client client/main.go
 
 server:
-	go build -v -i
+	go build -v
+
+install: install-server install-client
+
+install-server:
+	go install -v
+
+install-client:
+	go install client/main.go
 
 .PHONY: docker
 docker:
