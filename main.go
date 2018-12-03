@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"strconv"
 	"sync"
 
@@ -75,7 +74,7 @@ func handlePeerEvents() {
 
 func handleDocumentChange() {
 	for doc := range core.GetReducer().Ready() {
-		fmt.Println("Doc Changed: " + doc)
+		log.Debug("Doc Changed: " + doc)
 		connectionHandler.SendDocToClient(doc + "\n")
 	}
 }

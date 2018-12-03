@@ -119,7 +119,7 @@ func readString(r *bufio.Reader) string {
 }
 
 func ApplyOp(op *Operation, doc string) string {
-	fmt.Println("Applying operation: " + op.String() + " doc length: " + strconv.Itoa(len(doc)))
+	log.Debug("Applying operation: " + op.String() + " doc length: " + strconv.Itoa(len(doc)))
 	if op.OpType == "i" {
 		temp1 := doc[:op.Position]
 		temp2 := doc[op.Position:]

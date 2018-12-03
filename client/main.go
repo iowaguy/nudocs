@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -60,7 +59,7 @@ func main() {
 	communication.SendToServer(conn, "client")
 	// read document
 	doc = readTestDoc()
-	fmt.Println("Initial Doc: " + doc + "(" + strconv.Itoa(len(doc)) + ")")
+	log.Debug("Initial Doc: " + doc + "(" + strconv.Itoa(len(doc)) + ")")
 
 	// generate random ops and send to server
 	go randomOps(conn)
@@ -72,7 +71,7 @@ func main() {
 		select {
 		case op := <-serverOps:
 			doc = op
-			fmt.Println("Doc From server: " + doc + "(" + strconv.Itoa(len(doc)) + ")")
+			log.Debug("Doc From server: " + doc + "(" + strconv.Itoa(len(doc)) + ")")
 		case op := <-localOps:
 			doc = common.ApplyOp(op, doc)
 		}
@@ -115,7 +114,7 @@ func randomOps(conn net.Conn) {
 
 		// write op to a channel
 		localOps <- op
-		fmt.Println("Sending op to server: " + op.String() + " doc length: " + strconv.Itoa(len(doc)))
+		log.Debug("Sending op to server: " + op.String() + " doc length: " + strconv.Itoa(len(doc)))
 		communication.SendToServer(conn, op.String()+"\n")
 		time.Sleep(1 * time.Second)
 	}

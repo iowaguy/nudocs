@@ -1,13 +1,13 @@
 package core
 
 import (
-	"fmt"
+	"sync"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/iowaguy/nudocs/common"
 	"github.com/iowaguy/nudocs/common/clock"
 	"github.com/iowaguy/nudocs/common/communication"
 	"github.com/iowaguy/nudocs/membership"
-	"sync"
 )
 
 type OpTransformer interface {
@@ -49,13 +49,13 @@ func GetReducer() *Reduce {
 
 // these come from other peers
 func (r *Reduce) HandlePeerEvent(o *common.PeerOperation) {
-	fmt.Println("Peer proposed an operation: ", o)
+	log.Debug("Peer proposed an operation: ", o)
 	r.peerProposed <- o
 }
 
 // these come from the ui
 func (r *Reduce) HandleClientEvent(o *common.Operation) {
-	fmt.Println("Client Proposed an operation: " + o.String())
+	log.Debug("Client Proposed an operation: " + o.String())
 	// increment vector clock
 	clock.GetLocalVectorClock().IncrementClock()
 	po := common.NewPeerOperation(o.OpType, o.Character, o.Position)
@@ -116,7 +116,7 @@ func (r *Reduce) Start() {
 
 			//add these to list to be undone
 			o := common.UndoOperation(eo)
-			fmt.Println("Undo op: " + o.String())
+			log.Debug("Undo op: " + o.String())
 			r.applyOpToDoc(o)
 		}
 		undone := make([]*common.PeerOperation, 1024)
@@ -247,13 +247,13 @@ func (r *Reduce) log(o *common.PeerOperation) {
 }
 
 func printOperationList(ops []*common.PeerOperation) {
-	fmt.Println("Printing ops, length: ")
-	fmt.Println(len(ops))
+	log.Debug("Printing ops, length: ")
+	log.Debug(len(ops))
 	for _, op := range ops {
 		if op == nil {
 			log.Error("Op is nil")
 		}
-		fmt.Println(op.String())
+		log.Debug(op.String())
 	}
 }
 
@@ -261,16 +261,16 @@ func (r *Reduce) printDocAfterApplyingHistoryBuffer() {
 	//doc := "My name is Jaison!"
 	doc := "0000000000000000000000000000000000000000000000000000000000000000000000"
 	doc = getStringAfterApplyingOps(doc, r.historyBuffer)
-	fmt.Println(doc)
+	log.Debug(doc)
 }
 
 func getStringAfterApplyingOps(doc string, ops []*common.PeerOperation) string {
 	for _, op := range ops {
 		if op == nil {
-			fmt.Println("GetStringAfter: ops are null")
+			log.Debug("GetStringAfter: ops are null")
 			break
 		}
-		fmt.Println("Applying op: " + op.String() + " to doc: " + doc)
+		log.Debug("Applying op: " + op.String() + " to doc: " + doc)
 		doc = common.ApplyOp(&op.Operation, doc)
 	}
 	return doc
