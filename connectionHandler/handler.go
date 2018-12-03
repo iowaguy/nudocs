@@ -88,7 +88,8 @@ func receiveClientEvents(conn net.Conn) {
 }
 
 func SendDocToClient(doc string) {
-	clientConn.Write([]byte(doc))
+	docLength := strconv.Itoa(len(doc))
+	clientConn.Write([]byte(docLength + ":" + doc))
 }
 
 func isPeer(conn net.Conn) bool {

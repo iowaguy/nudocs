@@ -87,7 +87,6 @@ func readOpsFromServer(conn net.Conn) {
 }
 
 func readString(r *bufio.Reader) string {
-	//s, err := r.ReadString([]byte(0x2318))
 	s, err := r.ReadString(byte('\n'))
 	if err != nil {
 		if s == "" {
