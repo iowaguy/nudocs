@@ -57,10 +57,7 @@ func main() {
 		}
 	}
 	communication.SendToServer(conn, "client")
-	// read document
-	doc = readTestDoc()
-	log.Debug("Initial Doc: " + doc + "(" + strconv.Itoa(len(doc)) + ")")
-
+	doc = ""
 	// generate random ops and send to server
 	go randomOps(conn)
 
@@ -133,12 +130,18 @@ func getRandomOp(opType string) common.Operation {
 func genRandomOp() *common.Operation {
 	rand.Seed(time.Now().UTC().UnixNano())
 	var o common.Operation
-	if rand.Intn(2) == 1 {
+	if len(doc) == 0 {
+		o = getRandomOp("i")
+	} else if rand.Intn(2) == 1 {
 		o = getRandomOp("i")
 	} else {
 		o = getRandomOp("d")
 	}
-	o.Position = rand.Intn(len(doc))
+	if len(doc) == 0 {
+		o.Position = 0
+	} else {
+		o.Position = rand.Intn(len(doc))
+	}
 	log.Info("op=", o.String())
 	return &o
 }

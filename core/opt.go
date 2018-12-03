@@ -123,6 +123,7 @@ func (r *Reduce) Start() {
 			o := common.UndoOperation(eo)
 			log.Debug("Undo op: " + o.String())
 			r.applyOpToDoc(o)
+			i = i + 1
 		}
 		undone := make([]*common.PeerOperation, 1024)
 		lastPrecedingOpIndex := len(r.historyBuffer) - i - 1
