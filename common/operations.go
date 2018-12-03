@@ -98,6 +98,7 @@ func ParseOperation(r *bufio.Reader) *Operation {
 }
 
 func ParseOperationFromString(s string) *Operation {
+	log.Debug("String received: " + s)
 	var o Operation
 	o.OpType = string(s[0])
 	o.Character = string(s[1])
@@ -114,10 +115,16 @@ func readString(r *bufio.Reader) string {
 	if err != nil {
 		log.Panic("Error reading: ", err.Error()+" received: "+s)
 	}
-
+	log.Debug("Read string after first parse: " + s)
 	if len(s) < 3 {
 		// character was a newline, so need to continue parsing
-		s = s + readString(r)
+		t, err := r.ReadString(byte('\n'))
+		if err != nil {
+			log.Panic("Error reading: ", err.Error()+" received: "+s)
+		}
+
+		s = s + t
+		log.Debug("Read string after second parse: " + s)
 	}
 	return s
 }
