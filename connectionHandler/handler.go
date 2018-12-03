@@ -88,10 +88,11 @@ func awaitTcpConnections() {
 			os.Exit(1)
 		}
 		log.Info("Connection received, determining who it is...")
-		if isPeer(conn) {
+		initMsg := getBufferString(conn)
+		if isPeer(initMsg) {
 			log.Info("Connected to peer: " + conn.RemoteAddr().String())
 			go receivePeerEvents(conn)
-		} else if isClient(conn) {
+		} else if isClient(initMsg) {
 			log.Info("Connected to client")
 			if isClientConnected() {
 				log.Panic("More than one client is trying to connect.")
@@ -136,12 +137,12 @@ func SendDocToClient(doc string) {
 	clientConn.Write([]byte(toSend))
 }
 
-func isPeer(conn net.Conn) bool {
-	return getBufferString(conn) == "peer"
+func isPeer(msg string) bool {
+	return msg == "peer"
 }
 
-func isClient(conn net.Conn) bool {
-	return getBufferString(conn) == "client"
+func isClient(msg string) bool {
+	return msg == "client"
 }
 
 func getBufferString(conn net.Conn) string {
