@@ -45,15 +45,12 @@ class TextAreaComponent extends Component {
 				if (charLengthDiff > 0) {
 					//inserted
 					console.log("Character inserted: " + charLengthDiff)
-					console.log("Old cursor pos: " + this.cursorPos)
-					this.cursorPos = this.cursorPos + charLengthDiff
-					console.log("New cursor pos: " + this.cursorPos)
 				} else if (charLengthDiff < 0) {
 					console.log("Character deleted: " + charLengthDiff)
-					console.log("Old cursor pos: " + this.cursorPos)
-					this.cursorPos =  this.cursorPos - charLengthDiff
-					console.log("New cursor pos: " + this.cursorPos)
 				}
+				console.log("Old cursor pos: " + this.cursorPos)
+				this.cursorPos = this.cursorPos + charLengthDiff
+				console.log("New cursor pos: " + this.cursorPos)
 			}
 		}
 		var node = this.ref
