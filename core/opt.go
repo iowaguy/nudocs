@@ -125,7 +125,7 @@ func (r *Reduce) Start() {
 			r.applyOpToDoc(o)
 			i = i + 1
 		}
-		undone := make([]*common.PeerOperation, 1024)
+		undone := make([]*common.PeerOperation, 0, 1024)
 		lastPrecedingOpIndex := len(r.historyBuffer) - i - 1
 
 		copy(undone, r.historyBuffer[lastPrecedingOpIndex+1:])
@@ -140,8 +140,8 @@ func (r *Reduce) Start() {
 		r.applyOpToDoc(eoNew)
 
 		// (3) Transform Redo
-		transformedRedos := make([]*common.PeerOperation, 1024)
-		if undone[0] != nil {
+		transformedRedos := make([]*common.PeerOperation, 0, 1024)
+		if len(undone) > 0 && undone[0] != nil {
 			eom1Prime := IT(undone[0], eoNew)
 			undone = undone[1:]
 

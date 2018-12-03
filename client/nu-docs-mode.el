@@ -2,16 +2,15 @@
   (process-send-string pserv s))
 
 (defun nudocs-send-operation (pserv c p)
-  (if (= last-command-event 13)
-      (nudocs-send-raw pserv (format "%s\n%d\n" c p))
-    (nudocs-send-raw pserv (format "%s%c%d\n" c last-command-event p)))
-)
+  (cond ((= last-command-event 13) (nudocs-send-raw pserv (format "%s\n%d\n" c p)))
+        ((= last-command-event 127) (nudocs-send-raw pserv (format "%s0%d\n" c p)))
+        (t (nudocs-send-raw pserv (format "%s%c%d\n" c last-command-event p)))))
 
 (defun nudocs-post-command-hook (pserv)
+  (print last-command-event)
   (cond ((= last-command-event 127) (nudocs-send-operation pserv "d" (- (point) 1)))
         ((= last-command-event 4) (nudocs-send-operation pserv "d" (- (point) 1)))
-        ((> last-command-event 64) (nudocs-send-operation pserv "i" (- (point) 2)))
-        ((= last-command-event 32) (nudocs-send-operation pserv "i" (- (point) 1)))
+        ((> last-command-event 31) (nudocs-send-operation pserv "i" (- (point) 2)))
         ((= last-command-event 13) (nudocs-send-operation pserv "i" (- (point) 1)))))
 
 (defun nudocs-set-buffer (content)
