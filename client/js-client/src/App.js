@@ -7,8 +7,6 @@ import socketIOClient from "socket.io-client";
 const EMIT_TO_SERVER = "client-event"
 const RECEIVE_FROM_SERVER = "server-event"
 
-
-
 class App extends Component {
 	constructor() {
 		super()
