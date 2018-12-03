@@ -108,7 +108,7 @@ func (r *Reduce) Start() {
 	// pop causally ready operation off proposed queue
 	for oNew := range r.causallyReady {
 		// (1) Undo
-		var i int
+		var m int
 		for _, eo := range reverse(r.historyBuffer) {
 			if eo == nil {
 				break
@@ -123,42 +123,40 @@ func (r *Reduce) Start() {
 			o := common.UndoOperation(eo)
 			log.Debug("Undo op: " + o.String())
 			r.applyOpToDoc(o)
-			i = i + 1
+			m = m + 1
 		}
-		undone := make([]*common.PeerOperation, 0, 1024)
-		lastPrecedingOpIndex := len(r.historyBuffer) - i - 1
-
-		copy(undone, r.historyBuffer[lastPrecedingOpIndex+1:])
-
-		// remove everything after (and including) newI + 1 from
-		// history. need to do newI + 1, because we don't want to
-		// include the operation that happened before oNew
-		r.historyBuffer = r.historyBuffer[:lastPrecedingOpIndex+1]
-
 		// (2) Transform Do
 		eoNew := r.got(oNew)
-		r.applyOpToDoc(eoNew)
-
-		// (3) Transform Redo
-		transformedRedos := make([]*common.PeerOperation, 0, 1024)
-		if len(undone) > 0 && undone[0] != nil {
-			eom1Prime := IT(undone[0], eoNew)
-			undone = undone[1:]
-
-			transformedRedos = append(transformedRedos, eoNew, eom1Prime)
-			for i, eomi := range undone {
+		//ignoring because eonew is part of transformed todos, which will be applied later.
+		//r.applyOpToDoc(eoNew)
+		newOps := make([]*common.PeerOperation, 0, 1024)
+		newOps = append(newOps, eoNew)
+		n := len(r.historyBuffer)
+		if m < n {
+			undone := make([]*common.PeerOperation, 0, 1024)
+			copy(undone, r.historyBuffer[m+1:])
+			// (3) Transform Redo
+			if len(undone) > 0 {
 				// (3.1)
-				to := LET(eomi, reverse(undone[:i]))
-
+				eomPlus1 := r.historyBuffer[m+1]
+				eomPlus1Prime := IT(eomPlus1, eoNew)
+				newOps = append(newOps, eomPlus1Prime)
 				// (3.2)
-				eomiPrime := LIT(to, transformedRedos)
-				transformedRedos = append(transformedRedos, eomiPrime)
+				for i := 2; i >= 2 && i <= (n-m); i++ {
+					eomPlusi := r.historyBuffer[m+i]
+					to := LET(eomPlusi, reverse(r.historyBuffer[m+1:m+i]))
+					eomPlusiPrime := LIT(to, newOps)
+					newOps = append(newOps, eomPlusiPrime)
+				}
 			}
-		} else {
-			transformedRedos = append(transformedRedos, eoNew)
+
+			// remove everything after (and including) newI + 1 from
+			// history. need to do newI + 1, because we don't want to
+			// include the operation that happened before oNew
+			r.historyBuffer = r.historyBuffer[:m+1]
 		}
 		// write transformed ops to ready
-		for _, op := range transformedRedos {
+		for _, op := range newOps {
 			if op == nil {
 				break
 			}
