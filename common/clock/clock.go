@@ -41,7 +41,6 @@ func NewVectorClock(other []int, pid int) *VectorClock {
 }
 
 func (me *VectorClock) IncrementClock() *VectorClock {
-	log.Info("pid=", me.localPid, "; state len=", len(me.state))
 	me.state[me.localPid]++
 	return me
 }
