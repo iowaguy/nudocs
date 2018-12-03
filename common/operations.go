@@ -94,6 +94,10 @@ func ParsePeerOperation(r *bufio.Reader) *PeerOperation {
 
 func ParseOperation(r *bufio.Reader) *Operation {
 	s := readString(r)
+	return ParseOperationFromString(s)
+}
+
+func ParseOperationFromString(s string) *Operation {
 	var o Operation
 	o.OpType = string(s[0])
 	o.Character = string(s[1])

@@ -29,7 +29,7 @@ func init() {
 	Formatter.FullTimestamp = true
 	log.SetFormatter(Formatter)
 	log.SetReportCaller(false)
-	log.SetLevel(log.WarnLevel)
+	log.SetLevel(log.InfoLevel)
 }
 
 func main() {

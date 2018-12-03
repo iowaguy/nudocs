@@ -18,7 +18,7 @@ type Server struct {
 	socketio.Server
 }
 
-func NewServer(transportNames []string) (*Server, error) {
+func newServer(transportNames []string) (*Server, error) {
 	ret, err := socketio.NewServer(transportNames)
 	if err != nil {
 		return nil, err
@@ -37,24 +37,27 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.Server.ServeHTTP(w, r)
 }
 
-func AcceptConnectionOn(port int) {
+type connectionHandler func(string, socketio.Socket)
+type eventHandler func(string)
+
+func AcceptSocketIoConnectionOn(port int, cHandler connectionHandler, eHandler eventHandler) {
 	portStr := strconv.Itoa(port)
-	server, err := NewServer(nil)
+	server, err := newServer(nil)
 	if err != nil {
 		log.Println("Socker.io connection failed")
 		log.Fatal(err)
 	}
 	server.On("connection", func(so socketio.Socket) {
-		log.Println("on connection")
+		cHandler("connection", so)
 		so.On(RECEIVE_FROM_CLIENT, func(msg string) {
-			//TODO: handle event
+			eHandler(msg)
 		})
 		so.On("disconnection", func() {
-			log.Println("on disconnect")
+			cHandler("disconnection", so)
 		})
 	})
 	server.On("error", func(so socketio.Socket, err error) {
-		log.Println("error:", err)
+		cHandler("error", so)
 	})
 	http.Handle("/", server)
 	log.Fatal(http.ListenAndServe(":"+portStr, nil))

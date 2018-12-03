@@ -41,7 +41,8 @@ func GetReducer() *Reduce {
 		instantiatedReduce.peerProposed = make(chan *common.PeerOperation, 1024)
 		instantiatedReduce.done = make(chan string)
 		//str := "My name is Jaison!"
-		str := "0000000000000000000000000000000000000000000000000000000000000000000000"
+		//str := "0000000000000000000000000000000000000000000000000000000000000000000000"
+		str := ""
 		instantiatedReduce.doc = str
 	})
 	return instantiatedReduce
@@ -51,6 +52,10 @@ func GetReducer() *Reduce {
 func (r *Reduce) HandlePeerEvent(o *common.PeerOperation) {
 	log.Debug("Peer proposed an operation: ", o)
 	r.peerProposed <- o
+}
+
+func (r *Reduce) GetDoc() string {
+	return r.doc
 }
 
 // these come from the ui

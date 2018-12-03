@@ -2,6 +2,7 @@ package connectionHandler
 
 import (
 	"bufio"
+	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -9,32 +10,64 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/googollee/go-socket.io"
 	"github.com/iowaguy/nudocs/common"
 	"github.com/iowaguy/nudocs/common/communication"
+	"github.com/iowaguy/nudocs/core"
 	"github.com/iowaguy/nudocs/membership"
 )
 
 var (
-	performOnce sync.Once
-	connPort    int
-	connHost    string
-	connType    string
-	clientConn  net.Conn = nil
-	Ready                = make(chan int)
-	ClientEvent          = make(chan *common.Operation)
-	PeerEvent            = make(chan *common.PeerOperation)
+	performOnce     sync.Once
+	connPort        int
+	connHost        string
+	connType        string
+	clientConn      net.Conn        = nil
+	socketIOEmitter socketio.Socket = nil
+	Ready                           = make(chan int)
+	ClientEvent                     = make(chan *common.Operation)
+	PeerEvent                       = make(chan *common.PeerOperation)
 )
 
 func Start(host string, port int, ctype string, peers []string) {
 	connPort = port
 	connHost = host
 	connType = ctype
+	go awaitSocketIoConnection()
 	go awaitTcpConnections()
 	//blocks until all peers are connected
 	connectToPeers(peers)
 	//blocks until atleast one client is connected
-	for clientConn == nil {
+	for !isClientConnected() {
 	}
+}
+
+func isClientConnected() bool {
+	return clientConn != nil || socketIOEmitter != nil
+}
+
+func awaitSocketIoConnection() {
+	AcceptSocketIoConnectionOn(8080,
+		func(event string, so socketio.Socket) {
+			log.Info("Received socketIO event: " + event)
+			switch event {
+			case "connection":
+				if isClientConnected() {
+					log.Panic("More than one client is trying to connect.")
+				}
+				socketIOEmitter = so
+				emitDocToClient()
+			case "disconnection":
+				socketIOEmitter = nil
+			case "error":
+				socketIOEmitter = nil
+			}
+		},
+		func(msg string) {
+			fmt.Println(msg)
+			o := common.ParseOperationFromString(msg)
+			ClientEvent <- o
+		})
 }
 
 func awaitTcpConnections() {
@@ -58,15 +91,21 @@ func awaitTcpConnections() {
 		if isPeer(conn) {
 			log.Info("Connected to peer: " + conn.RemoteAddr().String())
 			go receivePeerEvents(conn)
-		} else {
+		} else if isClient(conn) {
 			log.Info("Connected to client")
-			if clientConn != nil {
+			if isClientConnected() {
 				log.Panic("More than one client is trying to connect.")
 			}
 			clientConn = conn
 			go receiveClientEvents(conn)
+			emitDocToClient()
 		}
 	}
+}
+
+func emitDocToClient() {
+	doc := core.GetReducer().GetDoc()
+	SendDocToClient(doc)
 }
 
 func receivePeerEvents(conn net.Conn) {
@@ -89,17 +128,30 @@ func receiveClientEvents(conn net.Conn) {
 
 func SendDocToClient(doc string) {
 	docLength := strconv.Itoa(len(doc))
-	clientConn.Write([]byte(docLength + ":" + doc))
+	toSend := docLength + ":" + doc
+	if socketIOEmitter != nil {
+		socketIOEmitter.Emit(EMIT_TO_CLIENT, toSend)
+		return
+	}
+	clientConn.Write([]byte(toSend))
 }
 
 func isPeer(conn net.Conn) bool {
+	return getBufferString(conn) == "peer"
+}
+
+func isClient(conn net.Conn) bool {
+	return getBufferString(conn) == "client"
+}
+
+func getBufferString(conn net.Conn) string {
 	buf := make([]byte, 256)
 	// Read the incoming connection into the buffer.
 	n, err := conn.Read(buf)
 	if err != nil {
 		log.Panic("Error reading: ", err.Error())
 	}
-	return string(buf[:n]) == "peer"
+	return string(buf[:n])
 }
 
 // This function will not return until connections have been established with all peers
