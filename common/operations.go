@@ -48,12 +48,15 @@ func newOperation(opType, character string, position int) *Operation {
 	return po
 }
 
-func UndoOperation(op *PeerOperation) *Operation {
+func UndoOperation(op *PeerOperation) *PeerOperation {
+	var o *PeerOperation
 	if op.OpType == "i" {
-		return newOperation("d", op.Character, op.Position)
+		o = NewPeerOperation("d", op.Character, op.Position)
 	} else {
-		return newOperation("i", op.Character, op.Position)
+		o = NewPeerOperation("i", op.Character, op.Position)
 	}
+	o.VClock = op.VClock
+	return o
 }
 
 func ParsePeerOperation(r *bufio.Reader) *PeerOperation {
@@ -113,4 +116,20 @@ func readString(r *bufio.Reader) string {
 		s = s + readString(r)
 	}
 	return s
+}
+
+func ApplyOp(op *Operation, doc string) string {
+	fmt.Println("Applying operation: " + op.String() + " doc length: " + strconv.Itoa(len(doc)))
+	if op.OpType == "i" {
+		temp1 := doc[:op.Position]
+		temp2 := doc[op.Position:]
+		return temp1 + op.Character + temp2
+	} else if op.OpType == "d" {
+		temp1 := doc[:op.Position]
+		temp2 := doc[op.Position+1:]
+		return temp1 + temp2
+	} else {
+		log.Warn("Unrecognized operation type: " + op.OpType)
+		return doc
+	}
 }

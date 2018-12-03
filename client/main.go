@@ -20,7 +20,7 @@ import (
 var (
 	doc             string
 	localOps        chan *common.Operation
-	serverOps       chan *common.Operation
+	serverOps       chan string
 	port            = flag.Int("p", 3333, "Server port to connect to")
 	host            = flag.String("h", "localhost", "Server hostname to connect to")
 	file            = flag.String("f", "", "Path to shared file")
@@ -33,7 +33,7 @@ func init() {
 	Formatter.TimestampFormat = "02-01-2006 15:04:05"
 	Formatter.FullTimestamp = true
 	log.SetFormatter(Formatter)
-	log.SetReportCaller(true)
+	log.SetReportCaller(false)
 	log.SetLevel(log.WarnLevel)
 }
 
@@ -43,7 +43,7 @@ func main() {
 	localOps = make(chan *common.Operation, 100)
 
 	// channel is unbuffered, only supports one at a time
-	serverOps = make(chan *common.Operation)
+	serverOps = make(chan string)
 
 	var conn net.Conn
 	for {
@@ -58,7 +58,6 @@ func main() {
 		}
 	}
 	communication.SendToServer(conn, "client")
-
 	// read document
 	doc = readTestDoc()
 	fmt.Println("Initial Doc: " + doc + "(" + strconv.Itoa(len(doc)) + ")")
@@ -72,11 +71,11 @@ func main() {
 	for {
 		select {
 		case op := <-serverOps:
-			doc = common.ApplyOp(op, doc)
+			doc = op
+			fmt.Println("Doc From server: " + doc + "(" + strconv.Itoa(len(doc)) + ")")
 		case op := <-localOps:
 			doc = common.ApplyOp(op, doc)
 		}
-		fmt.Println("Doc: " + doc + "(" + strconv.Itoa(len(doc)) + ")")
 	}
 }
 
@@ -84,8 +83,20 @@ func readOpsFromServer(conn net.Conn) {
 	defer conn.Close()
 	r := bufio.NewReader(conn)
 	for {
-		serverOps <- common.ParseOperation(r)
+		serverOps <- readString(r)
 	}
+}
+
+func readString(r *bufio.Reader) string {
+	//s, err := r.ReadString([]byte(0x2318))
+	s, err := r.ReadString(byte('\n'))
+	if err != nil {
+		if s == "" {
+			log.Panic("Error reading: ", err.Error()+" received: "+s)
+		}
+		return (s + readString(r))
+	}
+	return s
 }
 
 func randomOps(conn net.Conn) {

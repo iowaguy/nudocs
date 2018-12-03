@@ -11,23 +11,21 @@ import (
 )
 
 type OpTransformer interface {
-	Ready() <-chan *common.Operation
+	Ready() <-chan string
 	Start()
-	PeerPropose(o *common.PeerOperation)
-	ClientPropose(o *common.Operation)
+	HandlePeerEvent(o *common.PeerOperation)
+	HandleClientEvent(o *common.Operation)
 }
 
 type Reduce struct {
+	//the document string
+	doc string
 	// these are the operations that have been executed
 	historyBuffer []*common.PeerOperation
-
 	// these are the causally ready operations
 	causallyReady chan *common.PeerOperation
-
-	// these are operations that have been transformed and are ready to be
-	// applied by the client
-	done chan *common.Operation
-
+	//when document string changes
+	done         chan string
 	peerProposed chan *common.PeerOperation
 }
 
@@ -49,15 +47,32 @@ func GetReducer() *Reduce {
 		// causallyReady channel is emptied.
 		instantiatedReduce.causallyReady = make(chan *common.PeerOperation)
 		instantiatedReduce.peerProposed = make(chan *common.PeerOperation, 1024)
-		instantiatedReduce.done = make(chan *common.Operation, 1024)
+		instantiatedReduce.done = make(chan string)
+		//str := "My name is Jaison!"
+		str := "0000000000000000000000000000000000000000000000000000000000000000000000"
+		instantiatedReduce.doc = str
 	})
 	return instantiatedReduce
 }
 
 // these come from other peers
-func (r *Reduce) PeerPropose(o *common.PeerOperation) {
+func (r *Reduce) HandlePeerEvent(o *common.PeerOperation) {
 	fmt.Println("Peer proposed an operation: ", o)
 	r.peerProposed <- o
+}
+
+// these come from the ui
+func (r *Reduce) HandleClientEvent(o *common.Operation) {
+	fmt.Println("Client Proposed operation: " + o.String())
+	// increment vector clock
+	clock.GetLocalVectorClock().IncrementClock()
+	po := common.NewPeerOperation(o.OpType, o.Character, o.Position)
+	r.log(po)
+	// send to other peers
+	for i, peer := range membership.GetMembership().GetPeers() {
+		log.Info("peer=", i, peer.String())
+		communication.SendToPeer(&peer, po)
+	}
 }
 
 func (r *Reduce) queueCausallyReady() {
@@ -76,22 +91,8 @@ func (r *Reduce) queueCausallyReady() {
 	}
 }
 
-// these come from the ui
-func (r *Reduce) ClientPropose(o *common.Operation) {
-	fmt.Println("Client Proposed operation: " + o.String())
-	// increment vector clock
-	clock.GetLocalVectorClock().IncrementClock()
-	po := common.NewPeerOperation(o.OpType, o.Character, o.Position)
-	r.log(po)
-	// send to other peers
-	for i, peer := range membership.GetMembership().GetPeers() {
-		log.Info("peer=", i, peer.String())
-		communication.SendToPeer(&peer, po)
-	}
-}
-
 // returns a channel of ready operations that a client can access
-func (r *Reduce) Ready() <-chan *common.Operation {
+func (r *Reduce) Ready() <-chan string {
 	return r.done
 }
 
@@ -100,7 +101,7 @@ func (r *Reduce) Start() {
 
 	// pop causally ready operation off proposed queue
 	for oNew := range r.causallyReady {
-
+		newOps := make([]*common.PeerOperation, 1024)
 		// (1) Undo
 		var i int
 		for _, eo := range reverse(r.historyBuffer) {
@@ -108,14 +109,16 @@ func (r *Reduce) Start() {
 				break
 			}
 
+			//TODO: This should be totally preceeding (pg: 70)
 			if eo.VClock.HappenedBefore(&oNew.VClock) {
 				break
 			}
 
-			//   write the undo of each operation in HB to ready
-			r.done <- common.UndoOperation(eo)
+			//add these to list to be undone
+			o := common.UndoOperation(eo)
+			fmt.Println("Undo op: " + o.String())
+			newOps = append(newOps, o)
 		}
-
 		undone := make([]*common.PeerOperation, 1024)
 		lastPrecedingOpIndex := len(r.historyBuffer) - i - 1
 
@@ -130,7 +133,7 @@ func (r *Reduce) Start() {
 		eoNew := r.got(oNew)
 
 		// (3) Transform Redo
-		transformedRedos := make([]*common.PeerOperation, 0, 1024)
+		transformedRedos := make([]*common.PeerOperation, 1024)
 		if undone[0] != nil {
 			eom1Prime := IT(undone[0], eoNew)
 			undone = undone[1:]
@@ -147,14 +150,16 @@ func (r *Reduce) Start() {
 		} else {
 			transformedRedos = append(transformedRedos, eoNew)
 		}
+		newOps = append(newOps, transformedRedos...)
 		// write transformed ops to ready
 		for _, op := range transformedRedos {
 			if op == nil {
 				break
 			}
 			r.log(op)
-			r.done <- &op.Operation
 		}
+		r.doc = getStringAfterApplyingOps(r.doc, newOps)
+		r.done <- r.doc
 	}
 }
 
@@ -239,25 +244,35 @@ func (r *Reduce) got(o *common.PeerOperation) *common.PeerOperation {
 
 func (r *Reduce) log(o *common.PeerOperation) {
 	r.historyBuffer = append(r.historyBuffer, o)
-	r.printDocAfterApplyingHistoryBuffer()
 }
 
-func (r *Reduce) printHistoryBuffer() {
-	//printing history buffer
-	hbstr := ""
-	for _, op := range r.historyBuffer {
-		hbstr = hbstr + "-" + op.String()
+func printOperationList(ops []*common.PeerOperation) {
+	fmt.Println("Printing ops, length: ")
+	fmt.Println(len(ops))
+	for _, op := range ops {
+		if op == nil {
+			log.Error("Op is nil")
+		}
+		fmt.Println(op.String())
 	}
-	fmt.Print("Printing history buffer: \n" + hbstr)
 }
 
 func (r *Reduce) printDocAfterApplyingHistoryBuffer() {
 	//doc := "My name is Jaison!"
 	doc := "0000000000000000000000000000000000000000000000000000000000000000000000"
-	for _, op := range r.historyBuffer {
+	doc = getStringAfterApplyingOps(doc, r.historyBuffer)
+	fmt.Println(doc)
+}
+
+func getStringAfterApplyingOps(doc string, ops []*common.PeerOperation) string {
+	for _, op := range ops {
+		if op == nil {
+			break
+		}
+		fmt.Println("Applying op: " + op.String() + " to doc: " + doc)
 		doc = common.ApplyOp(&op.Operation, doc)
 	}
-	fmt.Println(doc)
+	return doc
 }
 
 func reverse(sl []*common.PeerOperation) []*common.PeerOperation {
