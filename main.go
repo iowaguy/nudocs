@@ -77,6 +77,6 @@ func handlePeerEvents() {
 func handleDocumentChange() {
 	for doc := range core.GetReducer().Ready() {
 		fmt.Println("Doc Changed: " + doc)
-		connectionHandler.SendDocToClient(doc)
+		connectionHandler.SendDocToClient(doc + "\n")
 	}
 }

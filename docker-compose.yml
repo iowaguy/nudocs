@@ -37,19 +37,19 @@ services:
 
   client1:
     <<: *client
-    command: /nudocs/client/client -h peer1 -p 3333 -f /nudocs/test/test.txt -o 5
+    command: /nudocs/client/client -h peer1 -p 3333 -f /nudocs/test/test.txt -o 20 
   client2:
     <<: *client
-    command: /nudocs/client/client -h peer2 -p 3333 -f /nudocs/test/test.txt -o 5
+    command: /nudocs/client/client -h peer2 -p 3333 -f /nudocs/test/test.txt -o 20 
   client3:
     <<: *client
-    command: /nudocs/client/client -h peer3 -p 3333 -f /nudocs/test/test.txt -o 5
+    command: /nudocs/client/client -h peer3 -p 3333 -f /nudocs/test/test.txt -o 20 
   client4:
     <<: *client
-    command: /nudocs/client/client -h peer4 -p 3333 -f /nudocs/test/test.txt -o 5
+    command: /nudocs/client/client -h peer4 -p 3333 -f /nudocs/test/test.txt -o 20 
   client5:
     <<: *client
-    command: /nudocs/client/client -h peer5 -p 3333 -f /nudocs/test/test.txt -o 5
+    command: /nudocs/client/client -h peer5 -p 3333 -f /nudocs/test/test.txt -o 20 
 
 networks:
   nudocs-net:

@@ -37,14 +37,6 @@ func GetReducer() *Reduce {
 	onceRed.Do(func() {
 		instantiatedReduce = &Reduce{}
 		instantiatedReduce.historyBuffer = make([]*common.PeerOperation, 0, 1024)
-
-		// the server can only have one ready operation at a time, will
-		// need to force this by making the channel unbuffered, so
-		// communication is synchronous. this is necessary because
-		// otherwise, an operation could happen locally and be
-		// unaccounted for in operations waiting in the ready queue.
-		// a new operation can only be processed after the
-		// causallyReady channel is emptied.
 		instantiatedReduce.causallyReady = make(chan *common.PeerOperation)
 		instantiatedReduce.peerProposed = make(chan *common.PeerOperation, 1024)
 		instantiatedReduce.done = make(chan string)
@@ -63,11 +55,13 @@ func (r *Reduce) HandlePeerEvent(o *common.PeerOperation) {
 
 // these come from the ui
 func (r *Reduce) HandleClientEvent(o *common.Operation) {
-	fmt.Println("Client Proposed operation: " + o.String())
+	fmt.Println("Client Proposed an operation: " + o.String())
 	// increment vector clock
 	clock.GetLocalVectorClock().IncrementClock()
 	po := common.NewPeerOperation(o.OpType, o.Character, o.Position)
 	r.log(po)
+	r.applyOpToDoc(po)
+	r.notifyDocValue()
 	// send to other peers
 	for i, peer := range membership.GetMembership().GetPeers() {
 		log.Info("peer=", i, peer.String())
@@ -75,8 +69,15 @@ func (r *Reduce) HandleClientEvent(o *common.Operation) {
 	}
 }
 
-func (r *Reduce) queueCausallyReady() {
+func (r *Reduce) notifyDocValue() {
+	r.done <- r.doc
+}
 
+func (r *Reduce) applyOpToDoc(op *common.PeerOperation) {
+	r.doc = common.ApplyOp(&op.Operation, r.doc)
+}
+
+func (r *Reduce) queueCausallyReady() {
 	// find causally ready operation
 	for proposed := range r.peerProposed {
 		if clock.GetLocalVectorClock().CausallyPreceding(&proposed.VClock) {
@@ -101,7 +102,6 @@ func (r *Reduce) Start() {
 
 	// pop causally ready operation off proposed queue
 	for oNew := range r.causallyReady {
-		newOps := make([]*common.PeerOperation, 1024)
 		// (1) Undo
 		var i int
 		for _, eo := range reverse(r.historyBuffer) {
@@ -117,7 +117,7 @@ func (r *Reduce) Start() {
 			//add these to list to be undone
 			o := common.UndoOperation(eo)
 			fmt.Println("Undo op: " + o.String())
-			newOps = append(newOps, o)
+			r.applyOpToDoc(o)
 		}
 		undone := make([]*common.PeerOperation, 1024)
 		lastPrecedingOpIndex := len(r.historyBuffer) - i - 1
@@ -131,6 +131,7 @@ func (r *Reduce) Start() {
 
 		// (2) Transform Do
 		eoNew := r.got(oNew)
+		r.applyOpToDoc(eoNew)
 
 		// (3) Transform Redo
 		transformedRedos := make([]*common.PeerOperation, 1024)
@@ -150,16 +151,15 @@ func (r *Reduce) Start() {
 		} else {
 			transformedRedos = append(transformedRedos, eoNew)
 		}
-		newOps = append(newOps, transformedRedos...)
 		// write transformed ops to ready
 		for _, op := range transformedRedos {
 			if op == nil {
 				break
 			}
 			r.log(op)
+			r.applyOpToDoc(op)
 		}
-		r.doc = getStringAfterApplyingOps(r.doc, newOps)
-		r.done <- r.doc
+		r.notifyDocValue()
 	}
 }
 
@@ -267,6 +267,7 @@ func (r *Reduce) printDocAfterApplyingHistoryBuffer() {
 func getStringAfterApplyingOps(doc string, ops []*common.PeerOperation) string {
 	for _, op := range ops {
 		if op == nil {
+			fmt.Println("GetStringAfter: ops are null")
 			break
 		}
 		fmt.Println("Applying op: " + op.String() + " to doc: " + doc)
