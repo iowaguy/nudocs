@@ -7,7 +7,7 @@
         (t (nudocs-send-raw pserv (format "%s%c%d\n" c last-command-event p)))))
 
 (defun nudocs-post-command-hook (pserv)
-  (print last-command-event)
+  ;; (print last-command-event)
   (cond ((= last-command-event 127) (nudocs-send-operation pserv "d" (- (point) 1)))
         ((= last-command-event 4) (nudocs-send-operation pserv "d" (- (point) 1)))
         ((> last-command-event 31) (nudocs-send-operation pserv "i" (- (point) 2)))
