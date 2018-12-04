@@ -24,4 +24,3 @@ report/report.log
 
 #js dependencies
 **/node_modules
-/report/report.pdf
