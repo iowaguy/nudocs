@@ -50,14 +50,14 @@
 %
 
 \newcommand{\enterProblemHeader}[1]{
-    \nobreak\extramarks{}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
-    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+	\nobreak\extramarks{}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+	\nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
 }
 
 \newcommand{\exitProblemHeader}[1]{
-    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
-    \stepcounter{#1}
-    \nobreak\extramarks{Problem \arabic{#1}}{}\nobreak{}
+	\nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+	\stepcounter{#1}
+	\nobreak\extramarks{Problem \arabic{#1}}{}\nobreak{}
 }
 
 %% \setcounter{secnumdepth}{0}
@@ -75,14 +75,14 @@
 % example.
 %
 \newenvironment{homeworkProblem}[1][-1]{
-    \ifnum#1>0
-        \setcounter{homeworkProblemCounter}{#1}
-    \fi
-    \section{Problem \arabic{homeworkProblemCounter}}
-    \setcounter{partCounter}{1}
-    \enterProblemHeader{homeworkProblemCounter}
+	\ifnum#1>0
+	\setcounter{homeworkProblemCounter}{#1}
+	\fi
+	\section{Problem \arabic{homeworkProblemCounter}}
+	\setcounter{partCounter}{1}
+	\enterProblemHeader{homeworkProblemCounter}
 }{
-    \exitProblemHeader{homeworkProblemCounter}
+	\exitProblemHeader{homeworkProblemCounter}
 }
 
 %
@@ -105,10 +105,10 @@
 %
 
 \title{
-    \vspace{2in}
-    \textmd{\textbf{\hmwkClass:\ \hmwkTitle}}\\
-    \normalsize\vspace{0.1in}\small{Due\ on\ \hmwkDueDate}\\
-    \vspace{0.1in}\large{\textit{\hmwkClassInstructor}}
+	\vspace{2in}
+	\textmd{\textbf{\hmwkClass:\ \hmwkTitle}}\\
+	\normalsize\vspace{0.1in}\small{Due\ on\ \hmwkDueDate}\\
+	\vspace{0.1in}\large{\textit{\hmwkClassInstructor}}
 }
 
 \author{\hmwkAuthorName}
@@ -177,9 +177,10 @@ The client serves two purposes. It updates the document according to the latest 
 The Emacs plugin was implemented in a language called Emacs Lisp, which was required. Lisp is an unusual class of language so there was some learning involved here. However, in the end, it is easy to enable this mode for a document, requiring only a short Emacs command.
 
 \subsubsection{Javascript App}
+The Javascript app is a simple web app made using the React framework. It uses Socket.Io to connect to its respective server and communicate with it.
 
 \section{Test Cases}
-We build a series of test cases using docker containers. Using docker compose, we created five peers and a client for each of them.
+We build a series of test cases using docker containers. Using docker compose, we created five peers and a client for each of them. The client in this case is a automated go program that randomly creates operations at an interval of one second and sents it to its respective server(peer).
 
 \section{Design Decisions}
 %%%%% clients were separated out so we could support multiple different types of interfaces
@@ -192,9 +193,9 @@ We build a series of test cases using docker containers. Using docker compose, w
 
 \section{Sources}
 \begin{itemize}
-  \item Ellis, Clarence A., and Simon J. Gibbs. "Concurrency control in groupware systems." Acm Sigmod Record. Vol. 18. No. 2. ACM, 1989.
-  \item Cormack, Gordon V. "A counterexample to the distributed operational transform and a corrected algorithm for point-to-point communication." University of Waterloo Technical Report (1995).
-  \item Sun, Chengzheng, and Clarence Ellis. "Operational transformation in real-time group editors: issues, algorithms, and achievements." Proceedings of the 1998 ACM conference on Computer supported cooperative work. ACM, 1998.
-  \item Sun, Chengzheng, et al. "Achieving convergence, causality preservation, and intention preservation in real-time cooperative editing systems." ACM Transactions on Computer-Human Interaction (TOCHI) 5.1 (1998): 63-108.
+	\item Ellis, Clarence A., and Simon J. Gibbs. "Concurrency control in groupware systems." Acm Sigmod Record. Vol. 18. No. 2. ACM, 1989.
+	\item Cormack, Gordon V. "A counterexample to the distributed operational transform and a corrected algorithm for point-to-point communication." University of Waterloo Technical Report (1995).
+	\item Sun, Chengzheng, and Clarence Ellis. "Operational transformation in real-time group editors: issues, algorithms, and achievements." Proceedings of the 1998 ACM conference on Computer supported cooperative work. ACM, 1998.
+	\item Sun, Chengzheng, et al. "Achieving convergence, causality preservation, and intention preservation in real-time cooperative editing systems." ACM Transactions on Computer-Human Interaction (TOCHI) 5.1 (1998): 63-108.
 \end{itemize}
 \end{document}
